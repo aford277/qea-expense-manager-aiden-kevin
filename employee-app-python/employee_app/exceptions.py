@@ -16,8 +16,5 @@ class NotFoundError(ExpenseManagerError):
 class InvalidStateError(ExpenseManagerError):
     """Raised when an action is not allowed in the record's current state, such as changing an expense that is no longer pending"""
 
-class DataFileError(ExpenseManagerError):
-    """Raised when an import file is missing or malformed"""
-
 class DatabaseError(ExpenseManagerError):
     """Raised when a database operation fails"""
