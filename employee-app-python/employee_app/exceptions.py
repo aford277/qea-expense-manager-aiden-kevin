@@ -2,7 +2,7 @@ class ExpenseManagerError(Exception):
     """Covers every custom exception"""
 
 class ValidationError(ExpenseManagerError):
-    """Raied when input data breaks a validation rule"""
+    """Raised when input data breaks a validation rule"""
 
 class AuthenticationError(ExpenseManagerError):
     """Raised when login credentials are wrong or the user does not exist"""
