@@ -1,3 +1,14 @@
+"""Entry point for the Employee App.
+
+Run from route
+Run from employee-app-python/:   python -m employee_app.main
+ 
+Job of this file:
+  * set up logging
+  * open the database connection and hand it to the menu
+  * catch anything that escapes and turn it into a friendly message + exit code
+"""
+
 import logging
 import sqlite3
 import sys

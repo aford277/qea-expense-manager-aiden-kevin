@@ -41,13 +41,13 @@ def login(conn, username, password):
         logger.warning("User entered %s as username but they do not exist!", username)
         raise AuthenticationError("Username not found!")
     elif row["password"] != password:
-        logger.warning("%s user entered wrong password", username)
-        raise AuthenticationError("Incorrect password")
+        logger.warning("%s user entered wrong password.", username)
+        raise AuthenticationError("Incorrect password.")
 
     # Check is user is actually a manager
     if row["role"] != "employee":
-        logger.warning("%s is on the wrong app! They are not an employee", username)
-        raise AuthorizationError
+        logger.warning("%s is on the wrong app! They are not an employee.", username)
+        raise AuthorizationError("You are using the wrong app. This app is for employees only.")
 
     # Log in succeeded
     logger.info("Login succeeded for %s", username)
