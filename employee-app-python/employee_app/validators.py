@@ -36,3 +36,22 @@ def is_valid_amount(amount_input) -> bool:
     except ValidationError:
         return False
 
+def validate_description(desc_input) -> str:
+    """VR-02: Description must be 1-200 characters after trimming"""
+    if desc_input is None:
+        raise ValidationError("Description cannot be empty")
+
+    desc = str(desc_input).strip()
+    if not desc:
+        raise ValidationError("Description cannot be empty or spaces only.")
+    if len(desc) > 200:
+        raise ValidationError("Description can't exceed 200 characters.")
+    return desc
+
+def is_valid_description(desc_input) -> bool:
+    '''Boolean helper for VR-02 testing.'''
+    try:
+        validate_description(desc_input)
+        return True
+    except ValidationError:
+        return False
