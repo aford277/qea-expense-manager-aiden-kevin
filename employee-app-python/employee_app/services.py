@@ -107,3 +107,40 @@ def list_my_expenses(conn, user, status=None):
         }
         for r in rows
     ]
+
+def list_review_history(conn, user):
+    """Return the user's approved and denied expenses, newest review first.
+    (FR-E5, FR-A4)"""
+    _require_employee(user)
+
+    sql = """
+        SELECT e.id, e.expense_date, c.name AS category, e.amount,
+               a.status, r.full_name AS reviewer, a.review_date, a.comment
+        FROM expenses e
+        JOIN categories c ON c.id = e.category_id
+        JOIN approvals  a ON a.expense_id = e.id
+        LEFT JOIN users r ON r.id = a.reviewer_id
+        WHERE e.user_id = ?
+          AND a.status IN ('approved', 'denied')
+        ORDER BY a.review_date DESC, e.id DESC
+    """
+    try:
+        rows = conn.execute(sql, (user.id,)).fetchall()
+    except sqlite3.Error as exc:
+        logger.error("Failed to load review history for user %s: %s", user.id, exc)
+        raise DatabaseError("Could not load your review history.") from exc
+
+
+    return [
+        {
+            "id": r["id"],
+            "date": r["expense_date"],
+            "category": r["category"],
+            "amount": round(r["amount"], 2),
+            "status": r["status"],
+            "reviewer": r["reviewer"] or "(unknown)",
+            "review_date": r["review_date"],
+            "comment": (r["comment"] or "").strip() or "(no comment)",
+        }
+        for r in rows
+    ]

@@ -17,13 +17,6 @@ MAX_FAILED_LOGINS = 3
 STATUS_FILTERS = {"1": None, "2": "pending", "3": "approved", "4": "denied"}
  
  
-def run(conn):
-    """Log the user in, then show the main menu."""
-    user = login_prompt(conn)
-    print(f"Welcome {user.full_name}")
-    main_menu(conn, user)
- 
- 
 def login_prompt(conn):
     """Ask for username/password until login succeeds. Return the User."""
     failures = 0
@@ -81,6 +74,25 @@ def view_expenses(conn, user):
     for e in expenses:
         print(f"{e['id']:>4}  {e['date']:<10}  {e['category']:<16}  "
               f"{e['amount']:>10.2f}  {e['status']}")
+
+def view_review_history(conn, user):
+    """Menu option 5 – FR-E5."""
+    try:
+        history = services.list_review_history(conn, user)
+    except ExpenseManagerError as exc:
+        print(exc)
+        return
+
+    if not history:
+        print("No reviewed expenses found.")
+        return
+
+    for h in history:
+        print(f"\nExpense #{h['id']}  {h['date']}  {h['category']}  ${h['amount']:.2f}")
+        print(f"  Status:   {h['status']}")
+        print(f"  Reviewer: {h['reviewer']}")
+        print(f"  Reviewed: {h['review_date']}")
+        print(f"  Comment:  {h['comment']}")
  
  
 def main_menu(conn, user):
@@ -91,11 +103,21 @@ def main_menu(conn, user):
     while True:
         print("\nPlease choose a service to perform or 0 to exit.")
         print("2. View expense reports")
+        print("5. Review expense history")
         print("0. Exit")
         choice = input("Choose: ").strip()
         if choice == "0":
             return
         elif choice == "2":
             view_expenses(conn, user)
+        elif choice == "5":
+            view_review_history(conn, user)
         else:
             print ("Choose a number from the menu.")
+
+
+def run(conn):
+    """Log the user in, then show the main menu."""
+    user = login_prompt(conn)
+    print(f"Welcome {user.full_name}")
+    main_menu(conn, user)
