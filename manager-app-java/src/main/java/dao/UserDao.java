@@ -6,6 +6,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Optional;
+
+import exception.DatabaseException;
  
 /** The only place that writes SQL for the `users` table. */
 public class UserDao {
@@ -33,7 +35,7 @@ public class UserDao {
                 return Optional.empty();
             }
         } catch (SQLException e) {
-            throw new RuntimeException("Database error during login.", e);
+            throw new DatabaseException("Database error during login.", e);
         }
     }
 }
