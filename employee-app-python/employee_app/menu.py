@@ -9,11 +9,12 @@ import logging
 import sys
  
 from employee_app import services
-from employee_app.exceptions import AuthenticationError, AuthorizationError
+from employee_app.exceptions import AuthenticationError, AuthorizationError, ExpenseManagerError
  
 logger = logging.getLogger(__name__)
  
 MAX_FAILED_LOGINS = 3
+STATUS_FILTERS = {"1": None, "2": "pending", "3": "approved", "4": "denied"}
  
  
 def run(conn):
@@ -55,18 +56,46 @@ def login_prompt(conn):
     logger.warning("Login locked out after 3 failed attempts.")
     print("Too many failed attempts.")
     sys.exit(1)
+
+def view_expenses(conn, user):
+    """Menu option 2 – FR-E2."""
+    while True:  # VR-09: re-prompt until a valid choice
+        print("\nShow: 1) All  2) Pending  3) Approved  4) Denied")
+        choice = input("Choice: ").strip()
+        if choice in STATUS_FILTERS:
+            break
+        print("Please enter a number from the menu.")
+
+    try:
+        expenses = services.list_my_expenses(conn, user, STATUS_FILTERS[choice])
+    except ExpenseManagerError as exc:
+        print(exc)  # FR-S4: short message, no traceback
+        return
+
+    if not expenses:
+        print("No expenses found.")
+        return
+
+    print(f"\n{'ID':>4}  {'Date':<10}  {'Category':<16}  {'Amount':>10}  Status")
+    print("-" * 56)
+    for e in expenses:
+        print(f"{e['id']:>4}  {e['date']:<10}  {e['category']:<16}  "
+              f"{e['amount']:>10.2f}  {e['status']}")
  
  
 def main_menu(conn, user):
-    """Main menu loop (spec 6.2). Stub: only 0 = Exit for now.
+    """Main menu loop (spec 6.2).
  
     Later: 1 Submit, 2 View, 3 Edit, 4 Delete, 5 Review history.
     """
     while True:
-        print("\n Please choose a service to perform or 0 to exit.")
+        print("\nPlease choose a service to perform or 0 to exit.")
+        print("2. View expense reports")
         print("0. Exit")
         choice = input("Choose: ").strip()
         if choice == "0":
             return
+        elif choice == "2":
+            view_expenses(conn, user)
         else:
             print ("Choose a number from the menu.")

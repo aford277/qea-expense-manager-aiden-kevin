@@ -1,13 +1,18 @@
 import logging
+import sqlite3
 from dataclasses import dataclass
 from datetime import date, datetime
 
 from employee_app.exceptions import (
     AuthenticationError,
-    AuthorizationError
+    AuthorizationError,
+    ValidationError,
+    DatabaseError
 )
 
 logger = logging.getLogger(__name__)
+
+VALID_STATUSES = ("pending", "approved", "denied")
 
 @dataclass
 class User:
@@ -16,6 +21,12 @@ class User:
     username: str
     role: str
     full_name: str
+
+def _require_employee(user):
+    """FR-A4: services check who is acting, not just the menus."""
+    if user is None or user.role != "employee":
+        logger.warning("Authorization failed: non-employee called an employee service")
+        raise AuthorizationError("This action is only available to employees.")
 
 def login(conn, username, password):
     """Check credentials and role. Return a User on success.
@@ -57,3 +68,42 @@ def login(conn, username, password):
         role=row["role"],
         full_name=row["full_name"]
     )
+
+def list_my_expenses(conn, user, status=None):
+    """Return the logged-in user's expenses, newest date first.
+    status=None returns all; otherwise one of VALID_STATUSES. (FR-E2)"""
+    # Make sure the user is an employee (not manager)
+    _require_employee(user)
+    # TEMP (waiting for validators)
+    if status is not None and status not in VALID_STATUSES:
+        raise ValidationError(f"Invalid status filter: {status}")
+
+    sql = """
+        SELECT e.id, e.expense_date, c.name AS category, e.amount, a.status
+        FROM expenses e
+        JOIN categories c ON c.id = e.category_id
+        JOIN approvals  a ON a.expense_id = e.id
+        WHERE e.user_id = ?
+    """
+    params = [user.id]
+    if status is not None:
+        sql += " AND a.status = ?"
+        params.append(status)
+    sql += " ORDER BY e.expense_date DESC, e.id DESC"
+
+    try:
+        rows = conn.execute(sql, params).fetchall()
+    except sqlite3.Error as exc:
+        logger.error("Failed to list expenses for user %s: %s", user.id, exc)
+        raise DatabaseError("Could not load your expenses.") from exc
+
+    return [
+        {
+            "id": r["id"],
+            "date": r["expense_date"],
+            "category": r["category"],
+            "amount": round(r["amount"], 2),
+            "status": r["status"],
+        }
+        for r in rows
+    ]
