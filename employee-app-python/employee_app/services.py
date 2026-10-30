@@ -9,6 +9,12 @@ from employee_app.exceptions import (
     ValidationError,
     DatabaseError
 )
+from employee_app.validators import (
+    validate_amount,
+    validate_category,
+    validate_description,
+    validate_expense_date,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -144,3 +150,55 @@ def list_review_history(conn, user):
         }
         for r in rows
     ]
+
+# FR-E1: submit
+
+def list_categories(conn):
+    """Return all categories as [{'id', 'name'}], ordered by id (FR-E1 numbered list)."""
+    try:
+        rows = conn.execute("SELECT id, name FROM categories ORDER BY id").fetchall()
+    except sqlite3.Error as exc:
+        logger.error("Failed to load categories: %s", exc)
+        raise DatabaseError("Could not load categories.") from exc
+    return [{"id": r["id"], "name": r["name"]} for r in rows]
+
+def _validate_expense_fields(amount, category_id, description, expense_date, today=None):
+    """Run VR-01 to VR-04. Services re-check values even if the menu already did."""
+    return (
+        validate_amount(amount),
+        validate_category(category_id),
+        validate_description(description),
+        validate_expense_date(expense_date, today),
+    )
+
+def submit_expense(conn, user, amount, category_id, description, expense_date, today=None):
+    """Save a new expense and 'pending' approval row in ONE transaction.
+    Returns the new expense ID. (FR-E1, FR-A4, VR-01 to VR-04)
+
+    An empty expense_date means today (Enter = today).
+    """
+    _require_employee(user)
+    amount, category_id, description, expense_date = _validate_expense_fields(
+        amount, category_id, description, expense_date, today
+    )
+    created_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    try:
+        with conn:  # commits both inserts together, or rolls both back
+            cur = conn.execute(
+                """INSERT INTO expenses
+                       (user_id, category_id, amount, description, expense_date, created_at)
+                   VALUES (?, ?, ?, ?, ?, ?)""",
+                (user.id, category_id, amount, description, expense_date, created_at),
+            )
+            expense_id = cur.lastrowid
+            conn.execute(
+                "INSERT INTO approvals (expense_id, status) VALUES (?, 'pending')",
+                (expense_id,),
+            )
+    except sqlite3.Error as exc:
+        logger.error("Failed to submit expense for user %s: %s", user.username, exc)
+        raise DatabaseError("Could not save your expense.") from exc
+
+    logger.info("User %s submitted expense %s (amount %.2f)", user.username, expense_id, amount)
+    return expense_id

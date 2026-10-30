@@ -9,7 +9,13 @@ import logging
 import sys
  
 from employee_app import services
-from employee_app.exceptions import AuthenticationError, AuthorizationError, ExpenseManagerError
+from employee_app.exceptions import AuthenticationError, AuthorizationError, ExpenseManagerError, ValidationError
+from employee_app.validators import (
+    validate_amount,
+    validate_description,
+    validate_category,
+    validate_expense_date,
+)
  
 logger = logging.getLogger(__name__)
  
@@ -49,6 +55,47 @@ def login_prompt(conn):
     logger.warning("Login locked out after 3 failed attempts.")
     print("Too many failed attempts.")
     sys.exit(1)
+
+def _ask(prompt, validate, keep=None):
+    """Ask until validate() accepts the input; print the rule on each failure (FR-E1).
+    If keep is given, pressing Enter returns it unchanged (FR-E3)."""
+    while True:
+        raw = input(prompt)
+        if keep is not None and raw.strip() == "":
+            return keep
+        try:
+            return validate(raw)
+        except ValidationError as exc:
+            print(exc)
+
+def _print_categories(categories):
+    """Show the numbered category list."""
+    print("Categories:")
+    for c in categories:
+        print(f"  {c['id']}. {c['name']}")
+
+def submit_expense(conn, user):
+    """Menu option 1 – FR-E1."""
+    try:
+        categories = services.list_categories(conn)
+    except ExpenseManagerError as exc:
+        print(exc)
+        return
+
+    amount = _ask("Amount: ", validate_amount)
+    _print_categories(categories)
+    category_id = _ask("Category number: ", validate_category)
+    description = _ask("Description: ", validate_description)
+    expense_date = _ask("Date (YYYY-MM-DD, Enter = today): ", validate_expense_date)
+
+    try:
+        expense_id = services.submit_expense(
+            conn, user, amount, category_id, description, expense_date
+        )
+    except ExpenseManagerError as exc:
+        print(exc)
+        return
+    print(f"Expense submitted. ID: {expense_id}")
 
 def view_expenses(conn, user):
     """Menu option 2 – FR-E2."""
@@ -102,12 +149,15 @@ def main_menu(conn, user):
     """
     while True:
         print("\nPlease choose a service to perform or 0 to exit.")
+        print("1. Submit expense")
         print("2. View expense reports")
         print("5. Review expense history")
         print("0. Exit")
         choice = input("Choose: ").strip()
         if choice == "0":
             return
+        elif choice == "1":
+            submit_expense(conn, user)
         elif choice == "2":
             view_expenses(conn, user)
         elif choice == "5":
