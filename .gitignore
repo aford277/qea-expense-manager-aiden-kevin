@@ -2,3 +2,6 @@ __pycache__
 *.db
 logs/
 reports/
+target/
+.idea/
+.vscode/
