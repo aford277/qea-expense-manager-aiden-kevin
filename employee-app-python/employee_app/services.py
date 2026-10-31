@@ -154,7 +154,7 @@ def list_review_history(conn, user):
         for r in rows
     ]
 
-# FR-E1: submit, FR-E3: edit
+# FR-E1: submit, FR-E3: edit, FR-E4: delete
 
 def list_categories(conn):
     """Return all categories as [{'id', 'name'}], ordered by id (FR-E1 numbered list)."""
@@ -280,3 +280,32 @@ def update_expense(conn, user, expense_id, amount, category_id, description, exp
         raise InvalidStateError("Expense is no longer pending.")
 
     logger.info("User %s edited expense %s", user.username, expense_id)
+
+def delete_expense(conn, user, expense_id):
+    """Delete the user's own pending expense and its approval row together. (FR-E4)
+    Like update_expense, the delete only matches while the expense is still pending (XW-04).
+    """
+    _require_employee(user)
+    expense_id = validate_expense_id(expense_id)
+
+    try:
+        with conn:  # both deletes commit together, or neither does
+            cur = conn.execute(
+                """DELETE FROM approvals
+                   WHERE expense_id = ? AND status = 'pending'
+                     AND expense_id IN (SELECT id FROM expenses WHERE user_id = ?)""",
+                (expense_id, user.id),
+            )
+            deleted = cur.rowcount
+            if deleted:
+                # approvals first: approvals.expense_id is a foreign key to expenses
+                conn.execute("DELETE FROM expenses WHERE id = ?", (expense_id,))
+    except sqlite3.Error as exc:
+        logger.error("Failed to delete expense %s: %s", expense_id, exc)
+        raise DatabaseError("Could not delete the expense.") from exc
+
+    if not deleted:
+        _check_own_pending(conn, user, expense_id)  # raises the specific reason
+        raise InvalidStateError("Expense is no longer pending.")
+
+    logger.info("User %s deleted expense %s", user.username, expense_id)

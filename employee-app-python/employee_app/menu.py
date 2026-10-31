@@ -153,6 +153,28 @@ def edit_expense(conn, user):
         return
     print(f"Expense #{expense_id} updated.")
 
+def delete_expense(conn, user):
+    """Menu option 4 – FR-E4. Only 'y' or 'Y' confirms."""
+    expense_id = _ask("Expense ID to delete: ", validate_expense_id)
+    try:
+        e = services.get_pending_expense(conn, user, expense_id)
+    except ExpenseManagerError as exc:
+        print(exc)  # not found, someone else's, or "Expense is no longer pending."
+        return
+
+    print(f"\nExpense #{e['id']}  {e['date']}  {e['category']}  "
+          f"${e['amount']:.2f}  {e['description']}")
+    if input("Delete this expense? (y/n): ").strip() not in ("y", "Y"):
+        print("Delete cancelled.")
+        return
+
+    try:
+        services.delete_expense(conn, user, expense_id)
+    except ExpenseManagerError as exc:
+        print(exc)  # manager decided it before we confirmed (XW-04)
+        return
+    print(f"Expense #{expense_id} deleted.")
+
 def view_review_history(conn, user):
     """Menu option 5 – FR-E5."""
     try:
@@ -183,6 +205,7 @@ def main_menu(conn, user):
         print("1. Submit expense")
         print("2. View expense reports")
         print("3. Edit pending expense")
+        print("4. Delete pending expense")
         print("5. Review expense history")
         print("0. Exit")
         choice = input("Choose: ").strip()
@@ -194,6 +217,8 @@ def main_menu(conn, user):
             view_expenses(conn, user)
         elif choice == "3":
             edit_expense(conn, user)
+        elif choice == "4":
+            delete_expense(conn, user)
         elif choice == "5":
             view_review_history(conn, user)
         else:
