@@ -7,13 +7,16 @@ from employee_app.exceptions import (
     AuthenticationError,
     AuthorizationError,
     ValidationError,
-    DatabaseError
+    DatabaseError,
+    NotFoundError,
+    InvalidStateError,
 )
 from employee_app.validators import (
     validate_amount,
     validate_category,
     validate_description,
     validate_expense_date,
+    validate_expense_id,
 )
 
 logger = logging.getLogger(__name__)
@@ -151,7 +154,7 @@ def list_review_history(conn, user):
         for r in rows
     ]
 
-# FR-E1: submit
+# FR-E1: submit, FR-E3: edit
 
 def list_categories(conn):
     """Return all categories as [{'id', 'name'}], ordered by id (FR-E1 numbered list)."""
@@ -187,8 +190,7 @@ def submit_expense(conn, user, amount, category_id, description, expense_date, t
         with conn:  # commits both inserts together, or rolls both back
             cur = conn.execute(
                 """INSERT INTO expenses
-                       (user_id, category_id, amount, description, expense_date, created_at)
-                   VALUES (?, ?, ?, ?, ?, ?)""",
+                       (user_id, category_id, amount, description, expense_date, created_at) VALUES (?, ?, ?, ?, ?, ?)""",
                 (user.id, category_id, amount, description, expense_date, created_at),
             )
             expense_id = cur.lastrowid
@@ -202,3 +204,79 @@ def submit_expense(conn, user, amount, category_id, description, expense_date, t
 
     logger.info("User %s submitted expense %s (amount %.2f)", user.username, expense_id, amount)
     return expense_id
+
+def _check_own_pending(conn, user, expense_id):
+    """Return the expense row if it exists, belongs to the user, and is pending.
+
+    Raises:
+        NotFoundError: the expense does not exist.
+        AuthorizationError: the expense belongs to someone else.  (FR-A4)
+        InvalidStateError: "Expense is no longer pending."  (FR-E3, FR-S2)
+    """
+    try:
+        row = conn.execute(
+            """SELECT e.id, e.user_id, e.amount, e.category_id, c.name AS category, e.description, e.expense_date, a.status
+               FROM expenses e
+               JOIN categories c ON c.id = e.category_id
+               LEFT JOIN approvals a ON a.expense_id = e.id
+               WHERE e.id = ?""",
+            (expense_id,),
+        ).fetchone()
+    except sqlite3.Error as exc:
+        logger.error("Failed to load expense %s: %s", expense_id, exc)
+        raise DatabaseError("Could not load the expense.") from exc
+
+    if row is None:
+        raise NotFoundError(f"Expense #{expense_id} not found.")
+    if row["user_id"] != user.id:
+        logger.warning("User %s tried to change expense %s owned by another user", user.username, expense_id)
+        raise AuthorizationError("You can only change your own expenses.")
+    if row["status"] != "pending":
+        raise InvalidStateError("Expense is no longer pending.")
+    return row
+
+def get_pending_expense(conn, user, expense_id):
+    """Return the current values of the user's own pending expense,
+    so the menu can show them before an edit or delete. (FR-E3, FR-E4)"""
+    _require_employee(user)
+    expense_id = validate_expense_id(expense_id)
+    row = _check_own_pending(conn, user, expense_id)
+    return {
+        "id": row["id"],
+        "amount": round(row["amount"], 2),
+        "category_id": row["category_id"],
+        "category": row["category"],
+        "description": row["description"],
+        "date": row["expense_date"],
+    }
+
+def update_expense(conn, user, expense_id, amount, category_id, description, expense_date, today=None):
+    """Update the user's own pending expense. Same validation as submit. (FR-E3)
+
+    The UPDATE only matches if the expense is still pending at the moment of saving,
+    so a manager decision made while the employee was typing is caught (XW-03).
+    """
+    _require_employee(user)
+    expense_id = validate_expense_id(expense_id)
+    amount, category_id, description, expense_date = _validate_expense_fields(amount, category_id, description, expense_date, today)
+
+    try:
+        with conn:
+            cur = conn.execute(
+                """UPDATE expenses
+                   SET amount = ?, category_id = ?, description = ?, expense_date = ?
+                   WHERE id = ? AND user_id = ?
+                     AND EXISTS (SELECT 1 FROM approvals
+                                 WHERE expense_id = ? AND status = 'pending')""",
+                (amount, category_id, description, expense_date,
+                 expense_id, user.id, expense_id),
+            )
+    except sqlite3.Error as exc:
+        logger.error("Failed to update expense %s: %s", expense_id, exc)
+        raise DatabaseError("Could not update the expense.") from exc
+
+    if cur.rowcount == 0:
+        _check_own_pending(conn, user, expense_id)  # raises the specific reason
+        raise InvalidStateError("Expense is no longer pending.")
+
+    logger.info("User %s edited expense %s", user.username, expense_id)

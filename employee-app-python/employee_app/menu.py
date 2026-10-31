@@ -15,6 +15,7 @@ from employee_app.validators import (
     validate_description,
     validate_category,
     validate_expense_date,
+    validate_expense_id,
 )
  
 logger = logging.getLogger(__name__)
@@ -122,6 +123,36 @@ def view_expenses(conn, user):
         print(f"{e['id']:>4}  {e['date']:<10}  {e['category']:<16}  "
               f"{e['amount']:>10.2f}  {e['status']}")
 
+def edit_expense(conn, user):
+    """Menu option 3 – FR-E3. Enter keeps current value."""
+    expense_id = _ask("Expense ID to edit: ", validate_expense_id)
+    try:
+        current = services.get_pending_expense(conn, user, expense_id)
+        categories = services.list_categories(conn)
+    except ExpenseManagerError as exc:
+        print(exc)  # not found, someone else's, or "Expense is no longer pending."
+        return
+
+    print(f"\nEditing expense #{expense_id}. Press Enter to keep the current value.")
+    amount = _ask(f"Amount [{current['amount']:.2f}]: ", validate_amount,
+                  keep=current["amount"])
+    _print_categories(categories)
+    category_id = _ask(f"Category number [{current['category_id']} - {current['category']}]: ",
+                       validate_category, keep=current["category_id"])
+    description = _ask(f"Description [{current['description']}]: ", validate_description,
+                       keep=current["description"])
+    expense_date = _ask(f"Date [{current['date']}]: ", validate_expense_date,
+                        keep=current["date"])
+
+    try:
+        services.update_expense(
+            conn, user, expense_id, amount, category_id, description, expense_date
+        )
+    except ExpenseManagerError as exc:
+        print(exc)  # e.g. a manager decided it while we were editing (XW-03)
+        return
+    print(f"Expense #{expense_id} updated.")
+
 def view_review_history(conn, user):
     """Menu option 5 – FR-E5."""
     try:
@@ -151,6 +182,7 @@ def main_menu(conn, user):
         print("\nPlease choose a service to perform or 0 to exit.")
         print("1. Submit expense")
         print("2. View expense reports")
+        print("3. Edit pending expense")
         print("5. Review expense history")
         print("0. Exit")
         choice = input("Choose: ").strip()
@@ -160,6 +192,8 @@ def main_menu(conn, user):
             submit_expense(conn, user)
         elif choice == "2":
             view_expenses(conn, user)
+        elif choice == "3":
+            edit_expense(conn, user)
         elif choice == "5":
             view_review_history(conn, user)
         else:
