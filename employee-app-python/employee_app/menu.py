@@ -9,7 +9,14 @@ import logging
 import sys
  
 from employee_app import services
-from employee_app.exceptions import AuthenticationError, AuthorizationError, ExpenseManagerError
+from employee_app.exceptions import AuthenticationError, AuthorizationError, ExpenseManagerError, ValidationError
+from employee_app.validators import (
+    validate_amount,
+    validate_description,
+    validate_category,
+    validate_expense_date,
+    validate_expense_id,
+)
  
 logger = logging.getLogger(__name__)
  
@@ -50,6 +57,47 @@ def login_prompt(conn):
     print("Too many failed attempts.")
     sys.exit(1)
 
+def _ask(prompt, validate, keep=None):
+    """Ask until validate() accepts the input; print the rule on each failure (FR-E1).
+    If keep is given, pressing Enter returns it unchanged (FR-E3)."""
+    while True:
+        raw = input(prompt)
+        if keep is not None and raw.strip() == "":
+            return keep
+        try:
+            return validate(raw)
+        except ValidationError as exc:
+            print(exc)
+
+def _print_categories(categories):
+    """Show the numbered category list."""
+    print("Categories:")
+    for c in categories:
+        print(f"  {c['id']}. {c['name']}")
+
+def submit_expense(conn, user):
+    """Menu option 1 – FR-E1."""
+    try:
+        categories = services.list_categories(conn)
+    except ExpenseManagerError as exc:
+        print(exc)
+        return
+
+    amount = _ask("Amount: ", validate_amount)
+    _print_categories(categories)
+    category_id = _ask("Category number: ", validate_category)
+    description = _ask("Description: ", validate_description)
+    expense_date = _ask("Date (YYYY-MM-DD, Enter = today): ", validate_expense_date)
+
+    try:
+        expense_id = services.submit_expense(
+            conn, user, amount, category_id, description, expense_date
+        )
+    except ExpenseManagerError as exc:
+        print(exc)
+        return
+    print(f"Expense submitted. ID: {expense_id}")
+
 def view_expenses(conn, user):
     """Menu option 2 – FR-E2."""
     while True:  # VR-09: re-prompt until a valid choice
@@ -74,6 +122,58 @@ def view_expenses(conn, user):
     for e in expenses:
         print(f"{e['id']:>4}  {e['date']:<10}  {e['category']:<16}  "
               f"{e['amount']:>10.2f}  {e['status']}")
+
+def edit_expense(conn, user):
+    """Menu option 3 – FR-E3. Enter keeps current value."""
+    expense_id = _ask("Expense ID to edit: ", validate_expense_id)
+    try:
+        current = services.get_pending_expense(conn, user, expense_id)
+        categories = services.list_categories(conn)
+    except ExpenseManagerError as exc:
+        print(exc)  # not found, someone else's, or "Expense is no longer pending."
+        return
+
+    print(f"\nEditing expense #{expense_id}. Press Enter to keep the current value.")
+    amount = _ask(f"Amount [{current['amount']:.2f}]: ", validate_amount,
+                  keep=current["amount"])
+    _print_categories(categories)
+    category_id = _ask(f"Category number [{current['category_id']} - {current['category']}]: ",
+                       validate_category, keep=current["category_id"])
+    description = _ask(f"Description [{current['description']}]: ", validate_description,
+                       keep=current["description"])
+    expense_date = _ask(f"Date [{current['date']}]: ", validate_expense_date,
+                        keep=current["date"])
+
+    try:
+        services.update_expense(
+            conn, user, expense_id, amount, category_id, description, expense_date
+        )
+    except ExpenseManagerError as exc:
+        print(exc)  # e.g. a manager decided it while we were editing (XW-03)
+        return
+    print(f"Expense #{expense_id} updated.")
+
+def delete_expense(conn, user):
+    """Menu option 4 – FR-E4. Only 'y' or 'Y' confirms."""
+    expense_id = _ask("Expense ID to delete: ", validate_expense_id)
+    try:
+        e = services.get_pending_expense(conn, user, expense_id)
+    except ExpenseManagerError as exc:
+        print(exc)  # not found, someone else's, or "Expense is no longer pending."
+        return
+
+    print(f"\nExpense #{e['id']}  {e['date']}  {e['category']}  "
+          f"${e['amount']:.2f}  {e['description']}")
+    if input("Delete this expense? (y/n): ").strip() not in ("y", "Y"):
+        print("Delete cancelled.")
+        return
+
+    try:
+        services.delete_expense(conn, user, expense_id)
+    except ExpenseManagerError as exc:
+        print(exc)  # manager decided it before we confirmed (XW-04)
+        return
+    print(f"Expense #{expense_id} deleted.")
 
 def view_review_history(conn, user):
     """Menu option 5 – FR-E5."""
@@ -102,14 +202,23 @@ def main_menu(conn, user):
     """
     while True:
         print("\nPlease choose a service to perform or 0 to exit.")
+        print("1. Submit expense")
         print("2. View expense reports")
+        print("3. Edit pending expense")
+        print("4. Delete pending expense")
         print("5. Review expense history")
         print("0. Exit")
         choice = input("Choose: ").strip()
         if choice == "0":
             return
+        elif choice == "1":
+            submit_expense(conn, user)
         elif choice == "2":
             view_expenses(conn, user)
+        elif choice == "3":
+            edit_expense(conn, user)
+        elif choice == "4":
+            delete_expense(conn, user)
         elif choice == "5":
             view_review_history(conn, user)
         else:
