@@ -81,7 +81,7 @@ public class Menu {
             try {
                 switch (choice) {
                     case 1 -> listPending();
-                    case 2 -> System.out.println("(coming soon)");
+                    case 2 -> reviewExpense();
                     case 3 -> System.out.println("(coming soon)");
                     case 0 -> {
                         System.out.println("Goodbye.");
@@ -107,6 +107,45 @@ public class Menu {
         for (Expense e : pending) {
             System.out.printf(format,
                     e.id(), e.employeeName(), e.expenseDate(), e.category(), e.amount(), e.description());
+        }
+    }
+
+    private void reviewExpense() {
+        // VR-08: a bad ID throws ValidationException; mainLoop prints it and shows the menu again
+        int expenseId = InputValidator.validateExpenseId(ask("Expense ID: "));
+ 
+        // Missing, deleted, or already decided? Stop now (NotFound / InvalidState, caught in mainLoop)
+        approvalService.checkCanDecide(manager, expenseId);
+ 
+        String decision;
+        while (true) {
+            decision = ask("Approve or deny? (a/d, c to cancel): ").trim().toLowerCase();
+            if (decision.equals("c")){
+                return;
+            } else if (decision.equals("a") || decision.equals("d")) {
+                break;
+            }
+            System.out.println("Enter a or d.");
+        }
+ 
+        // Ask for the comment until it passes (if comment is)
+        while (true) {
+            String prompt = decision.equals("a")
+                    ? "Comment (optional, press Enter to skip): "
+                    : "Reason for denial (5-200 characters): ";
+            String comment = ask(prompt);
+            try {
+                if (decision.equals("a")) {
+                    approvalService.approve(manager, expenseId, comment);
+                    System.out.println("Expense " + expenseId + " approved.");
+                } else {
+                    approvalService.deny(manager, expenseId, comment);
+                    System.out.println("Expense " + expenseId + " denied.");
+                }
+                return;
+            } catch (ValidationException e) {
+                System.out.println(e.getMessage());   // bad comment: show the rule and ask again
+            }
         }
     }
 

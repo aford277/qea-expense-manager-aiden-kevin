@@ -5,6 +5,7 @@ import service.ApprovalService;
 import service.AuthService;
 import java.sql.Connection;
 import java.util.Scanner;
+import java.time.Clock;
  
 /** Entry point: connect to the database, build the pieces, start the menu. */
 public class Main {
@@ -15,7 +16,7 @@ public class Main {
             Scanner scanner = new Scanner(System.in)) {
  
             AuthService authService = new AuthService(new UserDao(conn));
-            ApprovalService approvalService = new ApprovalService(new ApprovalDao(conn));
+            ApprovalService approvalService = new ApprovalService(new ApprovalDao(conn), Clock.systemDefaultZone());
             Menu menu = new Menu(scanner, authService, approvalService);
             exitCode = menu.run();
  
