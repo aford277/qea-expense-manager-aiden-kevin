@@ -6,8 +6,10 @@ import java.util.List;
 import java.util.Scanner;
 import model.Expense;
 import model.User;
+import model.ReportRow;
 import service.AuthService;
 import service.ApprovalService;
+import service.ReportService;
 import validation.InputValidator;
 
 /** All input/output lives here. No business rules — it just calls services. */
@@ -16,12 +18,14 @@ public class Menu {
     private final Scanner in;
     private final AuthService authService;
     private final ApprovalService approvalService;
+    private final ReportService reportService;
     private User manager;
 
-    public Menu(Scanner in, AuthService authService, ApprovalService approvalService) {
+    public Menu(Scanner in, AuthService authService, ApprovalService approvalService, ReportService reportService) {
         this.in = in;
         this.authService = authService;
         this.approvalService = approvalService;
+        this.reportService = reportService;
     }
 
     /** Runs the app. Returns the exit code (0 = normal, 1 = error). */
@@ -82,7 +86,7 @@ public class Menu {
                 switch (choice) {
                     case 1 -> listPending();
                     case 2 -> reviewExpense();
-                    case 3 -> System.out.println("(coming soon)");
+                    case 3 -> reportsMenu();
                     case 0 -> {
                         System.out.println("Goodbye.");
                         return;
@@ -146,6 +150,33 @@ public class Menu {
             } catch (ValidationException e) {
                 System.out.println(e.getMessage());   // bad comment: show the rule and ask again
             }
+        }
+    }
+
+    private void reportsMenu() {
+        System.out.println();
+        System.out.println("1) By employee");
+        System.out.println("2) By category");
+        System.out.println("0) Back");
+        int choice = InputValidator.validateMenuChoice(ask("Choose a report: "), 0, 1, 2); // VR-09
+ 
+        switch (choice) {
+            case 1 -> printReport("Employee", reportService.byEmployee(manager));
+            case 2 -> printReport("Category", reportService.byCategory(manager));
+            case 0 -> { /* back to main menu */ }
+        }
+    }
+ 
+    /** Prints a report table. nameHeader is the first column's title ("Employee" or "Category"). */
+    private void printReport(String nameHeader, List<ReportRow> rows) {
+        if (rows.isEmpty()) {
+            System.out.println("No data for the selected criteria.");   // exact text from FR-M3
+            return;
+        }
+        String format = "%-24s %6s %14s %14s%n";
+        System.out.printf(format, nameHeader, "Count", "Total", "Approved");
+        for (ReportRow r : rows) {
+            System.out.printf(format, r.name(), r.count(), r.totalAmount(), r.totalApproved());
         }
     }
 

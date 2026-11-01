@@ -1,8 +1,10 @@
 import dao.ApprovalDao;
+import dao.ReportDao;
 import dao.UserDao;
 import db.Database;
 import service.ApprovalService;
 import service.AuthService;
+import service.ReportService;
 import java.sql.Connection;
 import java.util.Scanner;
 import java.time.Clock;
@@ -17,7 +19,9 @@ public class Main {
  
             AuthService authService = new AuthService(new UserDao(conn));
             ApprovalService approvalService = new ApprovalService(new ApprovalDao(conn), Clock.systemDefaultZone());
-            Menu menu = new Menu(scanner, authService, approvalService);
+            ReportService reportService = new ReportService(new ReportDao(conn));
+
+            Menu menu = new Menu(scanner, authService, approvalService, reportService);
             exitCode = menu.run();
  
         } catch (Exception e) {
