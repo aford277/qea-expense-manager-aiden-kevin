@@ -1,5 +1,7 @@
+import dao.ApprovalDao;
 import dao.UserDao;
 import db.Database;
+import service.ApprovalService;
 import service.AuthService;
 import java.sql.Connection;
 import java.util.Scanner;
@@ -12,9 +14,9 @@ public class Main {
         try (Connection conn = Database.connect(Database.dbPath());
             Scanner scanner = new Scanner(System.in)) {
  
-            UserDao userDao = new UserDao(conn);
-            AuthService authService = new AuthService(userDao);
-            Menu menu = new Menu(scanner, authService);
+            AuthService authService = new AuthService(new UserDao(conn));
+            ApprovalService approvalService = new ApprovalService(new ApprovalDao(conn));
+            Menu menu = new Menu(scanner, authService, approvalService);
             exitCode = menu.run();
  
         } catch (Exception e) {

@@ -1,23 +1,32 @@
 import exception.AuthenticationException;
 import exception.AuthorizationException;
+import exception.ExpenseManagerException;
+import exception.ValidationException;
+import java.util.List;
+import java.util.Scanner;
+import model.Expense;
 import model.User;
 import service.AuthService;
-import java.util.Scanner;
+import service.ApprovalService;
+import validation.InputValidator;
 
 /** All input/output lives here. No business rules — it just calls services. */
 public class Menu {
 
     private final Scanner in;
     private final AuthService authService;
+    private final ApprovalService approvalService;
+    private User manager;
 
-    public Menu(Scanner in, AuthService authService) {
+    public Menu(Scanner in, AuthService authService, ApprovalService approvalService) {
         this.in = in;
         this.authService = authService;
+        this.approvalService = approvalService;
     }
 
     /** Runs the app. Returns the exit code (0 = normal, 1 = error). */
     public int run() {
-        User manager = login();
+        manager = login();
         if (manager == null) {
             return 1;
         }
@@ -59,17 +68,45 @@ public class Menu {
             System.out.println("2) Review an expense");
             System.out.println("3) Reports");
             System.out.println("0) Exit");
-            String choice = ask("Choose an option: ").trim();
 
-            switch (choice) {
-                case "1" -> System.out.println("(coming soon)");
-                case "2" -> System.out.println("(coming soon)");
-                case "3" -> System.out.println("(coming soon)");
-                case "0" -> {
-                    return;
-                }
-                default -> System.out.println("Invalid choice. Enter a number from the menu.");
+            int choice;
+
+            try {
+                choice = InputValidator.validateMenuChoice(ask("Choose an option: "), 0, 1, 2, 3);
+            } catch (ValidationException e) {
+                System.out.println(e.getMessage());
+                continue;
             }
+
+            try {
+                switch (choice) {
+                    case 1 -> listPending();
+                    case 2 -> System.out.println("(coming soon)");
+                    case 3 -> System.out.println("(coming soon)");
+                    case 0 -> {
+                        System.out.println("Goodbye.");
+                        return;
+                    }
+                }
+            } catch (ExpenseManagerException e) {
+                System.out.println(e.getMessage());               // expected errors
+            } catch (RuntimeException e) {
+                System.out.println("Unexpected error. See log."); // anything else
+            }
+        }
+    }
+
+    private void listPending() {
+        List<Expense> pending = approvalService.listPending(manager);
+        if (pending.isEmpty()) {
+            System.out.println("No pending expenses.");
+            return;
+        }
+        String format = "%-5s %-20s %-10s %-16s %10s  %s%n";
+        System.out.printf(format, "ID", "Employee", "Date", "Category", "Amount", "Description");
+        for (Expense e : pending) {
+            System.out.printf(format,
+                    e.id(), e.employeeName(), e.expenseDate(), e.category(), e.amount(), e.description());
         }
     }
 
