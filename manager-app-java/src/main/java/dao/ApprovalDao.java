@@ -7,6 +7,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import model.Expense;
@@ -47,6 +48,36 @@ public class ApprovalDao {
             return results;
         } catch (SQLException e) {
             throw new DatabaseException("Could not load pending expenses.", e);
+        }
+    }
+
+    public String findStatus(int expenseId) {
+        String sql = "SELECT status FROM approvals WHERE expense_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, expenseId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getString("status") : null;
+            }
+        } catch (SQLException e) {
+            throw new DatabaseException("Could not look up the expense.", e);
+        }
+    }
+ 
+    public boolean saveDecision(int expenseId, String status, int reviewerId, String comment, LocalDate reviewDate) {
+        String sql = """
+                UPDATE approvals
+                SET status = ?, reviewer_id = ?, comment = ?, review_date = ?
+                WHERE expense_id = ? AND status = 'pending'
+                """;
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, status);
+            ps.setInt(2, reviewerId);
+            ps.setString(3, comment);                 // null is allowed (no comment)
+            ps.setString(4, reviewDate.toString());   // LocalDate.toString() is YYYY-MM-DD (spec §8.3)
+            ps.setInt(5, expenseId);
+            return ps.executeUpdate() == 1;           // number of rows changed
+        } catch (SQLException e) {
+            throw new DatabaseException("Could not save the decision.", e);
         }
     }
 }
