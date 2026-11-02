@@ -1,23 +1,36 @@
 import exception.AuthenticationException;
 import exception.AuthorizationException;
-import model.User;
-import service.AuthService;
+import exception.ExpenseManagerException;
+import exception.ValidationException;
+import java.util.List;
 import java.util.Scanner;
+import model.Expense;
+import model.User;
+import model.ReportRow;
+import service.AuthService;
+import service.ApprovalService;
+import service.ReportService;
+import validation.InputValidator;
 
 /** All input/output lives here. No business rules — it just calls services. */
 public class Menu {
 
     private final Scanner in;
     private final AuthService authService;
+    private final ApprovalService approvalService;
+    private final ReportService reportService;
+    private User manager;
 
-    public Menu(Scanner in, AuthService authService) {
+    public Menu(Scanner in, AuthService authService, ApprovalService approvalService, ReportService reportService) {
         this.in = in;
         this.authService = authService;
+        this.approvalService = approvalService;
+        this.reportService = reportService;
     }
 
     /** Runs the app. Returns the exit code (0 = normal, 1 = error). */
     public int run() {
-        User manager = login();
+        manager = login();
         if (manager == null) {
             return 1;
         }
@@ -59,17 +72,111 @@ public class Menu {
             System.out.println("2) Review an expense");
             System.out.println("3) Reports");
             System.out.println("0) Exit");
-            String choice = ask("Choose an option: ").trim();
 
-            switch (choice) {
-                case "1" -> System.out.println("(coming soon)");
-                case "2" -> System.out.println("(coming soon)");
-                case "3" -> System.out.println("(coming soon)");
-                case "0" -> {
-                    return;
-                }
-                default -> System.out.println("Invalid choice. Enter a number from the menu.");
+            int choice;
+
+            try {
+                choice = InputValidator.validateMenuChoice(ask("Choose an option: "), 0, 1, 2, 3);
+            } catch (ValidationException e) {
+                System.out.println(e.getMessage());
+                continue;
             }
+
+            try {
+                switch (choice) {
+                    case 1 -> listPending();
+                    case 2 -> reviewExpense();
+                    case 3 -> reportsMenu();
+                    case 0 -> {
+                        System.out.println("Goodbye.");
+                        return;
+                    }
+                }
+            } catch (ExpenseManagerException e) {
+                System.out.println(e.getMessage());               // expected errors
+            } catch (RuntimeException e) {
+                System.out.println("Unexpected error. See log."); // anything else
+            }
+        }
+    }
+
+    private void listPending() {
+        List<Expense> pending = approvalService.listPending(manager);
+        if (pending.isEmpty()) {
+            System.out.println("No pending expenses.");
+            return;
+        }
+        String format = "%-5s %-20s %-10s %-16s %10s  %s%n";
+        System.out.printf(format, "ID", "Employee", "Date", "Category", "Amount", "Description");
+        for (Expense e : pending) {
+            System.out.printf(format,
+                    e.id(), e.employeeName(), e.expenseDate(), e.category(), e.amount(), e.description());
+        }
+    }
+
+    private void reviewExpense() {
+        // VR-08: a bad ID throws ValidationException; mainLoop prints it and shows the menu again
+        int expenseId = InputValidator.validateExpenseId(ask("Expense ID: "));
+ 
+        // Missing, deleted, or already decided? Stop now (NotFound / InvalidState, caught in mainLoop)
+        approvalService.checkCanDecide(manager, expenseId);
+ 
+        String decision;
+        while (true) {
+            decision = ask("Approve or deny? (a/d, c to cancel): ").trim().toLowerCase();
+            if (decision.equals("c")){
+                return;
+            } else if (decision.equals("a") || decision.equals("d")) {
+                break;
+            }
+            System.out.println("Enter a or d.");
+        }
+ 
+        // Ask for the comment until it passes (if comment is)
+        while (true) {
+            String prompt = decision.equals("a")
+                    ? "Comment (optional, press Enter to skip): "
+                    : "Reason for denial (5-200 characters): ";
+            String comment = ask(prompt);
+            try {
+                if (decision.equals("a")) {
+                    approvalService.approve(manager, expenseId, comment);
+                    System.out.println("Expense " + expenseId + " approved.");
+                } else {
+                    approvalService.deny(manager, expenseId, comment);
+                    System.out.println("Expense " + expenseId + " denied.");
+                }
+                return;
+            } catch (ValidationException e) {
+                System.out.println(e.getMessage());   // bad comment: show the rule and ask again
+            }
+        }
+    }
+
+    private void reportsMenu() {
+        System.out.println();
+        System.out.println("1) By employee");
+        System.out.println("2) By category");
+        System.out.println("0) Back");
+        int choice = InputValidator.validateMenuChoice(ask("Choose a report: "), 0, 1, 2); // VR-09
+ 
+        switch (choice) {
+            case 1 -> printReport("Employee", reportService.byEmployee(manager));
+            case 2 -> printReport("Category", reportService.byCategory(manager));
+            case 0 -> { /* back to main menu */ }
+        }
+    }
+ 
+    /** Prints a report table. nameHeader is the first column's title ("Employee" or "Category"). */
+    private void printReport(String nameHeader, List<ReportRow> rows) {
+        if (rows.isEmpty()) {
+            System.out.println("No data for the selected criteria.");   // exact text from FR-M3
+            return;
+        }
+        String format = "%-24s %6s %14s %14s%n";
+        System.out.printf(format, nameHeader, "Count", "Total", "Approved");
+        for (ReportRow r : rows) {
+            System.out.printf(format, r.name(), r.count(), r.totalAmount(), r.totalApproved());
         }
     }
 
