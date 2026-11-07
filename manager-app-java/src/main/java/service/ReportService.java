@@ -2,9 +2,12 @@ package service;
 
 import dao.ReportDao;
 import exception.AuthorizationException;
+
+import java.time.LocalDate;
 import java.util.List;
 import model.ReportRow;
 import model.User;
+import validation.DateRangeValidator;
 
 /** Reports for managers (spec FR-M3). Date range report (a Should) can be added here later. */
 public class ReportService {
@@ -25,6 +28,15 @@ public class ReportService {
     public List<ReportRow> byCategory(User manager) {
         requireManager(manager);
         return reportDao.byCategory();
+    }
+
+    /** Totals per employee in date range. Empty list if there is no data. */
+    public List<ReportRow> byEmployeeInRange(User manager, String startInput, String endInput) {
+        requireManager(manager);
+        LocalDate start = DateRangeValidator.validateDate(startInput);
+        LocalDate end = DateRangeValidator.validateDate(endInput);
+        DateRangeValidator.validateRange(start, end);
+        return reportDao.byEmployeeInRange(start, end);
     }
 
     /** A non-manager calling reports gets AuthorizationException. */

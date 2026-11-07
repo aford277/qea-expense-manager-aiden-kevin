@@ -43,11 +43,9 @@ public class Menu {
     private User login() {
         int failed = 0;
         while (true) {
-            String username = ask("Username: ");
-            String password = ask("Password: ");
-            if (username.isBlank() || password.isBlank()) {
-                continue; // empty input re-prompts, doesn't count as a failure
-            }
+            String username = askNonBlank("Username: ");
+            String password = askNonBlank("Password: ");
+            
             try {
                 return authService.login(username, password);
             } catch (AuthenticationException e) {
@@ -157,12 +155,18 @@ public class Menu {
         System.out.println();
         System.out.println("1) By employee");
         System.out.println("2) By category");
+        System.out.println("3) By employee with date range");
         System.out.println("0) Back");
-        int choice = InputValidator.validateMenuChoice(ask("Choose a report: "), 0, 1, 2); // VR-09
+        int choice = InputValidator.validateMenuChoice(ask("Choose a report: "), 0, 1, 2, 3); // VR-09
  
         switch (choice) {
             case 1 -> printReport("Employee", reportService.byEmployee(manager));
             case 2 -> printReport("Category", reportService.byCategory(manager));
+            case 3 -> {
+                String start = ask("Start date (YYYY-MM-DD): ");
+                String end = ask("End date (YYYY-MM-DD): ");
+                printReport("Employee", reportService.byEmployeeInRange(manager, start, end));
+            }
             case 0 -> { /* back to main menu */ }
         }
     }
@@ -177,6 +181,16 @@ public class Menu {
         System.out.printf(format, nameHeader, "Count", "Total", "Approved");
         for (ReportRow r : rows) {
             System.out.printf(format, r.name(), r.count(), r.totalAmount(), r.totalApproved());
+        }
+    }
+
+    /** Keeps asking the same question until something other than blank/spaces is typed. */
+    private String askNonBlank(String prompt) {
+        while (true) {
+            String value = ask(prompt);
+            if (!value.isBlank()) {
+                return value;
+            }
         }
     }
 
