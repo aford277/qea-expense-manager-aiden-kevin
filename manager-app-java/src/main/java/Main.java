@@ -19,13 +19,13 @@ public class Main {
  
             AuthService authService = new AuthService(new UserDao(conn));
             ApprovalService approvalService = new ApprovalService(new ApprovalDao(conn), Clock.systemDefaultZone());
-            ReportService reportService = new ReportService(new ReportDao(conn));
+            ReportService reportService = new ReportService(new ReportDao(conn), Clock.systemDefaultZone());
 
             Menu menu = new Menu(scanner, authService, approvalService, reportService);
             exitCode = menu.run();
  
         } catch (Exception e) {
-            System.out.println("Could not start: " + e.getMessage());
+            System.out.println("Unexpected error. See log.");
             exitCode = 1;
         }
         System.exit(exitCode);

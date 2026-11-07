@@ -2,6 +2,7 @@ import exception.AuthenticationException;
 import exception.AuthorizationException;
 import exception.ExpenseManagerException;
 import exception.ValidationException;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Scanner;
 import model.Expense;
@@ -159,15 +160,41 @@ public class Menu {
         System.out.println("0) Back");
         int choice = InputValidator.validateMenuChoice(ask("Choose a report: "), 0, 1, 2, 3); // VR-09
  
-        switch (choice) {
-            case 1 -> printReport("Employee", reportService.byEmployee(manager));
-            case 2 -> printReport("Category", reportService.byCategory(manager));
-            case 3 -> {
-                String start = ask("Start date (YYYY-MM-DD): ");
-                String end = ask("End date (YYYY-MM-DD): ");
-                printReport("Employee", reportService.byEmployeeInRange(manager, start, end));
-            }
-            case 0 -> { /* back to main menu */ }
+        if (choice == 0) {
+            return;   // back to main menu
+        }
+ 
+        // Remember which report was shown, so it can be exported afterwards
+        String type;            // used in the CSV filename
+        String nameHeader;      // first column title on screen
+        List<ReportRow> rows;
+        if (choice == 1) {
+            type = "employee";
+            nameHeader = "Employee";
+            rows = reportService.byEmployee(manager);
+        } else if (choice == 2) {
+            type = "category";
+            nameHeader = "Category";
+            rows = reportService.byCategory(manager);
+        } else {
+            String start = ask("Start date (YYYY-MM-DD): ");
+            String end = ask("End date (YYYY-MM-DD): ");
+            type = "employee_range";
+            nameHeader = "Employee";
+            rows = reportService.byEmployeeInRange(manager, start, end);
+        }
+ 
+        printReport(nameHeader, rows);
+        if (rows.isEmpty()) {
+            return;   // nothing to export
+        }
+ 
+        // Export the report that's on screen. A write failure throws ExpenseManagerException
+        // mainLoop prints it and the report stays above.
+        String answer = ask("Export to CSV? (y/n): ").trim();
+        if (answer.equalsIgnoreCase("y")) {
+            Path file = reportService.exportCsv(manager, type, rows);
+            System.out.println("Report saved to " + file);
         }
     }
  
