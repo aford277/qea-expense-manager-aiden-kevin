@@ -84,6 +84,7 @@ public class Menu {
                 choice = InputValidator.validateMenuChoice(ask("Choose an option: "), 0, 1, 2, 3);
             } catch (ValidationException e) {
                 System.out.println(e.getMessage());
+                AppLogger.warning(e.getMessage());
                 continue;
             }
 
@@ -98,8 +99,10 @@ public class Menu {
                     }
                 }
             } catch (ExpenseManagerException e) {
+                AppLogger.warning(e.getMessage());
                 System.out.println(e.getMessage());               // expected errors
             } catch (RuntimeException e) {
+                AppLogger.error("Unexpected error", e);
                 System.out.println("Unexpected error. See log."); // anything else
             }
         }
@@ -153,6 +156,7 @@ public class Menu {
                 }
                 return;
             } catch (ValidationException e) {
+                AppLogger.warning(e.getMessage());
                 System.out.println(e.getMessage());   // bad comment: show the rule and ask again
             }
         }
