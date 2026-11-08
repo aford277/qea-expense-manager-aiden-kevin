@@ -12,6 +12,7 @@ import service.AuthService;
 import service.ApprovalService;
 import service.ReportService;
 import validation.InputValidator;
+import log.AppLogger;
 
 /** All input/output lives here. No business rules — it just calls services. */
 public class Menu {
@@ -48,16 +49,21 @@ public class Menu {
             String password = askNonBlank("Password: ");
             
             try {
-                return authService.login(username, password);
+                User user = authService.login(username, password);
+                AppLogger.info("Login successful: " + user.username());
+                return user;
             } catch (AuthenticationException e) {
                 System.out.println(e.getMessage());
                 failed++;
+                AppLogger.warning("Failed login attempt for username: " + username);   
                 if (failed == 3) {
                     System.out.println("Too many failed attempts.");
+                    AppLogger.warning("Too many failed login attempts. Exiting.");
                     return null;
                 }
             } catch (AuthorizationException e) {
                 System.out.println(e.getMessage());
+                AppLogger.warning("Access denied (wrong role) for username: " + username);
                 return null;
             }
         }

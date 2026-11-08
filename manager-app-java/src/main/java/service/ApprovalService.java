@@ -11,6 +11,7 @@ import java.util.List;
 import model.Expense;
 import model.User;
 import validation.CommentValidator;
+import log.AppLogger;
 
 public class ApprovalService {
  
@@ -43,12 +44,14 @@ public class ApprovalService {
         requireManager(manager);
         CommentValidator.validateApproval(comment);
         decide(manager, expenseId, "approved", comment);
+        AppLogger.info("Expense " + expenseId + " approved by " + manager.username());
     }
  
     public void deny(User manager, int expenseId, String comment) {
         requireManager(manager);
         CommentValidator.validateDenial(comment);
         decide(manager, expenseId, "denied", comment);
+        AppLogger.info("Expense " + expenseId + " denied by " + manager.username());
     }
  
     /** Shared steps for approve and deny. */

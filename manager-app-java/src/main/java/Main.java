@@ -8,6 +8,7 @@ import service.ReportService;
 import java.sql.Connection;
 import java.util.Scanner;
 import java.time.Clock;
+import log.AppLogger;
  
 /** Entry point: connect to the database, build the pieces, start the menu. */
 public class Main {
@@ -25,6 +26,7 @@ public class Main {
             exitCode = menu.run();
  
         } catch (Exception e) {
+            AppLogger.error("Unexpected error", e);
             System.out.println("Unexpected error. See log.");
             exitCode = 1;
         }
