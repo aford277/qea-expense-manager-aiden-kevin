@@ -224,10 +224,11 @@ public class Menu {
     /** Keeps asking the same question until something other than blank/spaces is typed. */
     private String askNonBlank(String prompt) {
         while (true) {
-            String value = ask(prompt);
-            if (!value.isBlank()) {
-                return value;
-            }
+            try {
+            return InputValidator.validateLoginInput(ask(prompt));
+        } catch (ValidationException e) {
+            System.out.println(e.getMessage());
+        }
         }
     }
 

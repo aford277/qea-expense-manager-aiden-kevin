@@ -16,6 +16,8 @@ from employee_app.validators import (
     validate_category,
     validate_expense_date,
     validate_expense_id,
+    validate_menu_choice,
+    validate_login_input
 )
  
 logger = logging.getLogger(__name__)
@@ -32,9 +34,11 @@ def login_prompt(conn):
         username = input("Username: ").strip()
         password = getpass.getpass("Password: ")
         
-        if not username or not password:
-            # re-prompt, failures unchanged
-            print("Please enter a username and password.")
+        try:
+            validate_login_input(username)
+            validate_login_input(password)
+        except ValidationError as exc:
+            print(exc)
             continue
  
         try:
@@ -208,7 +212,11 @@ def main_menu(conn, user):
         print("4. Delete pending expense")
         print("5. Review expense history")
         print("0. Exit")
-        choice = input("Choose: ").strip()
+        try:
+            choice = validate_menu_choice(input("Choose: "), max_choice=5)
+        except ValidationError as exc:
+            print(exc)
+            continue
         if choice == "0":
             return
         elif choice == "1":
@@ -228,5 +236,5 @@ def main_menu(conn, user):
 def run(conn):
     """Log the user in, then show the main menu."""
     user = login_prompt(conn)
-    print(f"Welcome {user.full_name}")
+    print(f"Welcome, {user.full_name}")
     main_menu(conn, user)

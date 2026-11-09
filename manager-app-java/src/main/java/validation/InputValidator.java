@@ -4,6 +4,13 @@ import exception.ValidationException;
 
 public final class InputValidator {
 
+    public static String validateLoginInput(String input) {
+        if (input == null || input.isBlank()) {
+            throw new ValidationException("Please enter a username and password.");
+        }
+        return input;
+    }
+
     public static int validateExpenseId(String input) {
         Integer id = parseWholeNumber(input);
         if (id == null || id <= 0) {
