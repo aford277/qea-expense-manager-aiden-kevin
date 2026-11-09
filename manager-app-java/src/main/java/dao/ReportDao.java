@@ -7,6 +7,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import model.ReportRow;
@@ -54,17 +55,39 @@ public class ReportDao {
         return runReport(sql);
     }
 
+    public List<ReportRow> byEmployeeInRange(LocalDate start, LocalDate end) {
+        String sql = """
+                SELECT u.full_name AS name,
+                       COUNT(*) AS expense_count,
+                       SUM(e.amount) AS total_amount,
+                       SUM(CASE WHEN a.status = 'approved' THEN e.amount ELSE 0 END) AS total_approved
+                FROM expenses e
+                JOIN approvals a ON a.expense_id = e.id
+                JOIN users u     ON u.id = e.user_id
+                WHERE e.expense_date BETWEEN ? AND ?
+                GROUP BY u.id, u.full_name
+                ORDER BY u.full_name, u.id
+                """;
+
+        return runReport(sql, start.toString(), end.toString());
+    }
+
     /** Runs a report query and turns each row into a ReportRow. Both queries use the same column names. */
-    private List<ReportRow> runReport(String sql) {
+    private List<ReportRow> runReport(String sql, String... params) {
         List<ReportRow> rows = new ArrayList<>();
-        try (PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) {
-                rows.add(new ReportRow(
-                        rs.getString("name"),
-                        rs.getInt("expense_count"),
-                        toMoney(rs.getDouble("total_amount")),
-                        toMoney(rs.getDouble("total_approved"))));
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            for (int i = 0; i < params.length; i++) {
+                ps.setString(i + 1, params[i]);  
+            }
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    rows.add(new ReportRow(
+                            rs.getString("name"),
+                            rs.getInt("expense_count"),
+                            toMoney(rs.getDouble("total_amount")),
+                            toMoney(rs.getDouble("total_approved"))));
+                }
             }
             return rows;
         } catch (SQLException e) {

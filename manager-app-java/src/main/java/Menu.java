@@ -2,6 +2,7 @@ import exception.AuthenticationException;
 import exception.AuthorizationException;
 import exception.ExpenseManagerException;
 import exception.ValidationException;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Scanner;
 import model.Expense;
@@ -11,6 +12,7 @@ import service.AuthService;
 import service.ApprovalService;
 import service.ReportService;
 import validation.InputValidator;
+import log.AppLogger;
 
 /** All input/output lives here. No business rules — it just calls services. */
 public class Menu {
@@ -43,22 +45,25 @@ public class Menu {
     private User login() {
         int failed = 0;
         while (true) {
-            String username = ask("Username: ");
-            String password = ask("Password: ");
-            if (username.isBlank() || password.isBlank()) {
-                continue; // empty input re-prompts, doesn't count as a failure
-            }
+            String username = askNonBlank("Username: ");
+            String password = askNonBlank("Password: ");
+            
             try {
-                return authService.login(username, password);
+                User user = authService.login(username, password);
+                AppLogger.info("Login successful: " + user.username());
+                return user;
             } catch (AuthenticationException e) {
                 System.out.println(e.getMessage());
                 failed++;
+                AppLogger.warning("Failed login attempt for username: " + username);   
                 if (failed == 3) {
                     System.out.println("Too many failed attempts.");
+                    AppLogger.warning("Too many failed login attempts. Exiting.");
                     return null;
                 }
             } catch (AuthorizationException e) {
                 System.out.println(e.getMessage());
+                AppLogger.warning("Access denied (wrong role) for username: " + username);
                 return null;
             }
         }
@@ -79,6 +84,7 @@ public class Menu {
                 choice = InputValidator.validateMenuChoice(ask("Choose an option: "), 0, 1, 2, 3);
             } catch (ValidationException e) {
                 System.out.println(e.getMessage());
+                AppLogger.warning(e.getMessage());
                 continue;
             }
 
@@ -93,8 +99,10 @@ public class Menu {
                     }
                 }
             } catch (ExpenseManagerException e) {
+                AppLogger.warning(e.getMessage());
                 System.out.println(e.getMessage());               // expected errors
             } catch (RuntimeException e) {
+                AppLogger.error("Unexpected error", e);
                 System.out.println("Unexpected error. See log."); // anything else
             }
         }
@@ -148,6 +156,7 @@ public class Menu {
                 }
                 return;
             } catch (ValidationException e) {
+                AppLogger.warning(e.getMessage());
                 System.out.println(e.getMessage());   // bad comment: show the rule and ask again
             }
         }
@@ -157,13 +166,45 @@ public class Menu {
         System.out.println();
         System.out.println("1) By employee");
         System.out.println("2) By category");
+        System.out.println("3) By employee with date range");
         System.out.println("0) Back");
-        int choice = InputValidator.validateMenuChoice(ask("Choose a report: "), 0, 1, 2); // VR-09
+        int choice = InputValidator.validateMenuChoice(ask("Choose a report: "), 0, 1, 2, 3); // VR-09
  
-        switch (choice) {
-            case 1 -> printReport("Employee", reportService.byEmployee(manager));
-            case 2 -> printReport("Category", reportService.byCategory(manager));
-            case 0 -> { /* back to main menu */ }
+        if (choice == 0) {
+            return;   // back to main menu
+        }
+ 
+        // Remember which report was shown, so it can be exported afterwards
+        String type;            // used in the CSV filename
+        String nameHeader;      // first column title on screen
+        List<ReportRow> rows;
+        if (choice == 1) {
+            type = "employee";
+            nameHeader = "Employee";
+            rows = reportService.byEmployee(manager);
+        } else if (choice == 2) {
+            type = "category";
+            nameHeader = "Category";
+            rows = reportService.byCategory(manager);
+        } else {
+            String start = ask("Start date (YYYY-MM-DD): ");
+            String end = ask("End date (YYYY-MM-DD): ");
+            type = "employee_range";
+            nameHeader = "Employee";
+            rows = reportService.byEmployeeInRange(manager, start, end);
+        }
+ 
+        printReport(nameHeader, rows);
+        if (rows.isEmpty()) {
+            return;   // nothing to export
+        }
+ 
+        // Export the report that's on screen. A write failure throws ExpenseManagerException
+        // mainLoop prints it and the report stays above.
+        String answer = ask("Export to CSV? (y/n): ").trim();
+        if (answer.equalsIgnoreCase("y")) {
+            Path file = reportService.exportCsv(manager, type, rows);
+            System.out.println("Report saved to " + file);
         }
     }
  
@@ -177,6 +218,16 @@ public class Menu {
         System.out.printf(format, nameHeader, "Count", "Total", "Approved");
         for (ReportRow r : rows) {
             System.out.printf(format, r.name(), r.count(), r.totalAmount(), r.totalApproved());
+        }
+    }
+
+    /** Keeps asking the same question until something other than blank/spaces is typed. */
+    private String askNonBlank(String prompt) {
+        while (true) {
+            String value = ask(prompt);
+            if (!value.isBlank()) {
+                return value;
+            }
         }
     }
 
