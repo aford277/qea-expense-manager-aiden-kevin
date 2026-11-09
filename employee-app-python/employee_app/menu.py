@@ -16,6 +16,8 @@ from employee_app.validators import (
     validate_category,
     validate_expense_date,
     validate_expense_id,
+    validate_menu_choice,
+    validate_login_input
 )
  
 logger = logging.getLogger(__name__)
@@ -29,12 +31,14 @@ def login_prompt(conn):
     failures = 0
  
     while failures < MAX_FAILED_LOGINS:
-        username = input("Username: ").strip()
-        password = getpass.getpass("Password: ")
+        username = _ask("Username: ", validate_login_input).strip()
+        password = _ask("Password: ", validate_login_input, read=getpass.getpass)
         
-        if not username or not password:
-            # re-prompt, failures unchanged
-            print("Please enter a username and password.")
+        try:
+            validate_login_input(username)
+            validate_login_input(password)
+        except ValidationError as exc:
+            print(exc)
             continue
  
         try:
@@ -57,11 +61,11 @@ def login_prompt(conn):
     print("Too many failed attempts.")
     sys.exit(1)
 
-def _ask(prompt, validate, keep=None):
+def _ask(prompt, validate, keep=None, read=input):
     """Ask until validate() accepts the input; print the rule on each failure (FR-E1).
     If keep is given, pressing Enter returns it unchanged (FR-E3)."""
     while True:
-        raw = input(prompt)
+        raw = read(prompt)
         if keep is not None and raw.strip() == "":
             return keep
         try:
@@ -208,18 +212,22 @@ def main_menu(conn, user):
         print("4. Delete pending expense")
         print("5. Review expense history")
         print("0. Exit")
-        choice = input("Choose: ").strip()
-        if choice == "0":
+        try:
+            choice = validate_menu_choice(input("Choose: "), max_choice=5)
+        except ValidationError as exc:
+            print(exc)
+            continue
+        if choice == 0:
             return
-        elif choice == "1":
+        elif choice == 1:
             submit_expense(conn, user)
-        elif choice == "2":
+        elif choice == 2:
             view_expenses(conn, user)
-        elif choice == "3":
+        elif choice == 3:
             edit_expense(conn, user)
-        elif choice == "4":
+        elif choice == 4:
             delete_expense(conn, user)
-        elif choice == "5":
+        elif choice == 5:
             view_review_history(conn, user)
         else:
             print ("Choose a number from the menu.")
@@ -228,5 +236,5 @@ def main_menu(conn, user):
 def run(conn):
     """Log the user in, then show the main menu."""
     user = login_prompt(conn)
-    print(f"Welcome {user.full_name}")
+    print(f"Welcome, {user.full_name}")
     main_menu(conn, user)

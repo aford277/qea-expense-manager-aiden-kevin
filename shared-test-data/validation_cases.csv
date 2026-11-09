@@ -1,0 +1,19 @@
+field,input,expected
+expense_id,7,true
+expense_id,1,true
+expense_id,0,false
+expense_id,-1,false
+expense_id,1.5,false
+expense_id,abc,false
+expense_id,,false
+menu_choice,0,true
+menu_choice,1,true
+menu_choice,6,false
+menu_choice,99,false
+menu_choice,-1,false
+menu_choice,1.5,false
+menu_choice,abc,false
+menu_choice,,false
+login,emp_jordan,true
+login,,false
+login,"   ",false

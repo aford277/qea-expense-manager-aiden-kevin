@@ -130,3 +130,9 @@ def validate_menu_choice(choice_input, max_choice=5) -> int:
         raise ValidationError(f"Menu choice must be between 0 and {max_choice}.")
 
     return val
+
+def validate_login_input(value) -> str:
+    """FR-A1: username/password can't be empty or spaces only. Returned unchanged."""
+    if value is None or str(value).strip() == "":
+        raise ValidationError("Please enter a username and password.")
+    return value
