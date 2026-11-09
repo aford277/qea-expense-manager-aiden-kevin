@@ -31,8 +31,8 @@ def login_prompt(conn):
     failures = 0
  
     while failures < MAX_FAILED_LOGINS:
-        username = input("Username: ").strip()
-        password = getpass.getpass("Password: ")
+        username = _ask("Username: ", validate_login_input).strip()
+        password = _ask("Password: ", validate_login_input, read=getpass.getpass)
         
         try:
             validate_login_input(username)
@@ -217,17 +217,17 @@ def main_menu(conn, user):
         except ValidationError as exc:
             print(exc)
             continue
-        if choice == "0":
+        if choice == 0:
             return
-        elif choice == "1":
+        elif choice == 1:
             submit_expense(conn, user)
-        elif choice == "2":
+        elif choice == 2:
             view_expenses(conn, user)
-        elif choice == "3":
+        elif choice == 3:
             edit_expense(conn, user)
-        elif choice == "4":
+        elif choice == 4:
             delete_expense(conn, user)
-        elif choice == "5":
+        elif choice == 5:
             view_review_history(conn, user)
         else:
             print ("Choose a number from the menu.")
