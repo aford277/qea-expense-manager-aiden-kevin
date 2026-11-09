@@ -61,11 +61,11 @@ def login_prompt(conn):
     print("Too many failed attempts.")
     sys.exit(1)
 
-def _ask(prompt, validate, keep=None):
+def _ask(prompt, validate, keep=None, read=input):
     """Ask until validate() accepts the input; print the rule on each failure (FR-E1).
     If keep is given, pressing Enter returns it unchanged (FR-E3)."""
     while True:
-        raw = input(prompt)
+        raw = read(prompt)
         if keep is not None and raw.strip() == "":
             return keep
         try:
