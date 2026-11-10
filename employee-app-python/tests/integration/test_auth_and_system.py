@@ -25,12 +25,7 @@ def test_login_valid_employee(conn):
 
 @pytest.mark.negative
 def test_login_wrong_password(conn):
-    """Covers: FR-A1 (TA-09) - wrong password raises AuthenticationError.
-
-    Only the exception type is checked. The message should be
-    'Invalid username or password.' (FR-A1) but currently isn't - see the
-    login-message defect on the back burner.
-    """
+    """Covers: FR-A1 (TA-09) - wrong password raises AuthenticationError."""
     with pytest.raises(AuthenticationError):
         services.login(conn, "emp_jordan", "wrongpass")
 
