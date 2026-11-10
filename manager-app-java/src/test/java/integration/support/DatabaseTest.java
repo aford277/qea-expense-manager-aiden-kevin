@@ -1,4 +1,4 @@
-package support;
+package integration.support;
 
 import db.Database;
 import java.io.IOException;

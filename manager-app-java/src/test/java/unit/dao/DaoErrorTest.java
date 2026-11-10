@@ -1,4 +1,4 @@
-package dao;
+package unit.dao;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -13,6 +13,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+
+import dao.ApprovalDao;
+import dao.ReportDao;
+import dao.UserDao;
 
 /**
  * A database failure (SQLException) must become our own DatabaseException (FR-S4),
