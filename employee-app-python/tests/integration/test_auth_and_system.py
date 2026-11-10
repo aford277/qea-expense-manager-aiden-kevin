@@ -4,6 +4,8 @@ Each test gets a fresh temporary database built from schema.sql + seed.sql
 (see the db_path / conn fixtures in tests/conftest.py).
 """
 
+import logging
+import re
 import sqlite3
 
 import pytest
@@ -11,6 +13,7 @@ import pytest
 from employee_app import services
 from employee_app.exceptions import AuthenticationError, AuthorizationError
 from employee_app.services import User
+from employee_app.logging_config import setup_logging
 
 
 # ---------------------------------------------------------------- FR-A1 login
@@ -95,3 +98,51 @@ def test_database_rejects_bad_rows(conn, sql):
     not only by the app (CHECK, UNIQUE and FOREIGN KEY)."""
     with pytest.raises(sqlite3.IntegrityError):
         conn.execute(sql)
+
+
+# ---------------------------------------------------------------- FR-S3 logging
+ 
+@pytest.fixture
+def app_log_file(tmp_path, monkeypatch):
+    """Runs the app's real setup_logging() inside a temp folder and returns the log file path.
+ 
+    pytest attaches its own handlers to the root logger, and logging.basicConfig()
+    does nothing while any handler is attached - so they are set aside during the
+    test and put back afterwards.
+    """
+    monkeypatch.chdir(tmp_path)                 # logs/employee_app.log is created under tmp_path
+    root = logging.getLogger()
+    saved_handlers, saved_level = root.handlers[:], root.level
+    root.handlers = []
+ 
+    setup_logging()
+    yield tmp_path / "logs" / "employee_app.log"
+ 
+    for handler in root.handlers:               # close the app's log file (Windows can't delete open files)
+        handler.close()
+    root.handlers = saved_handlers
+    root.setLevel(saved_level)
+ 
+ 
+def test_logins_are_logged_without_passwords(conn, app_log_file):
+    """Covers: FR-S3 (TS-03) - a successful and a failed login are both written to
+    logs/employee_app.log with time, level and message, and neither password appears."""
+    services.login(conn, "emp_jordan", "jordan123")
+    with pytest.raises(AuthenticationError):
+        services.login(conn, "emp_jordan", "wrongpass")
+ 
+    for handler in logging.getLogger().handlers:
+        handler.flush()
+    lines = app_log_file.read_text(encoding="utf-8").splitlines()
+ 
+    # every entry: "YYYY-MM-DD HH:MM:SS LEVEL logger.name: message"
+    assert lines
+    for line in lines:
+        assert re.fullmatch(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [A-Z]+ \S+: .+", line)
+    assert any(" INFO " in line and "emp_jordan" in line for line in lines)      # successful login
+    assert any(" WARNING " in line and "emp_jordan" in line for line in lines)   # failed login
+ 
+    log_text = "\n".join(lines)
+    assert "jordan123" not in log_text
+    assert "wrongpass" not in log_text
+ 
