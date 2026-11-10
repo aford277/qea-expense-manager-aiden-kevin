@@ -56,33 +56,12 @@ def conn(db_path):
         yield connection
 
 
-@pytest.fixture
-def empty_db_path(tmp_path):
-    """Path to a temporary database with the schema only (no seed rows). For FR-S1."""
-    path = tmp_path / "empty_expense_manager.db"
-    _build_database(path, with_seed=False)
-    yield path
-    path.unlink(missing_ok=True)
-
-
 # ---------------------------------------------------------------- users (from seed.sql)
 
 @pytest.fixture
 def employee():
     """emp_jordan (id 3). Owns seed expenses 1, 5, 9, 13, 17, 21, 25."""
     return User(id=3, username="emp_jordan", role="employee", full_name="Jordan Lee")
-
-
-@pytest.fixture
-def other_employee():
-    """emp_maria (id 4). Used to check one employee can't touch another's expenses."""
-    return User(id=4, username="emp_maria", role="employee", full_name="Maria Santos")
-
-
-@pytest.fixture
-def manager():
-    """mgr_asha (id 1). Used to check managers are refused by employee services."""
-    return User(id=1, username="mgr_asha", role="manager", full_name="Asha Patel")
 
 
 @pytest.fixture
