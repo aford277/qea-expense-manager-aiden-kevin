@@ -1,4 +1,4 @@
-package service;
+package unit.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -10,6 +10,8 @@ import exception.AuthenticationException;
 import exception.AuthorizationException;
 import java.util.Optional;
 import model.User;
+import service.AuthService;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
