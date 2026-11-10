@@ -83,7 +83,6 @@ class ManagerMenuLoggingTest extends DatabaseTest {
     // TS-03: FR-S3
 
     @Test
-    @Tag("smoke")
     @DisplayName("Covers: FR-S3 (TS-03) - a successful login is logged with time and level; the password is not")
     void successfulLoginIsLoggedWithoutPassword() throws IOException {
         int exitCode = runMenu("mgr_asha", "asha123", "0");   // log in, then 0 = Exit

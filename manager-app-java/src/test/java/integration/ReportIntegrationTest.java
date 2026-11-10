@@ -48,7 +48,6 @@ class ReportIntegrationTest extends DatabaseTest {
             "Omar Haddad,  6, 11680.82, 1499.99",
             "Wei Chen,     6, 1152.65,  420.20"
     })
-    @Tag("smoke")
     @DisplayName("Covers: FR-M3, FR-S5 (TM-04) - report by employee: count, total and approved total")
     void reportByEmployee(String name, int count, String total, String approved) {
         ReportRow row = rowNamed(service.byEmployee(MANAGER), name);
@@ -79,7 +78,6 @@ class ReportIntegrationTest extends DatabaseTest {
             "Training,        4, 12249.99, 11499.99",
             "Travel,          5, 1586.36,  1445.60"
     })
-    @Tag("smoke")
     @DisplayName("Covers: FR-M3, FR-S5 (TM-04) - report by category: count, total and approved total")
     void reportByCategory(String name, int count, String total, String approved) {
         ReportRow row = rowNamed(service.byCategory(MANAGER), name);
