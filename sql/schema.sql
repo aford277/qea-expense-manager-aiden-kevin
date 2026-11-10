@@ -28,8 +28,8 @@ CREATE TABLE expenses (
     category_id  INTEGER NOT NULL,
     amount       REAL NOT NULL CHECK (amount > 0 AND amount <= 10000),
     description  TEXT NOT NULL,
-    expense_date TEXT NOT NULL CHECK (expense_date IS date(expense_date)),
-    created_at   TEXT NOT NULL CHECK (created_at IS datetime(created_at)),
+    expense_date TEXT NOT NULL CHECK (expense_date IS date(julianday(expense_date))),
+    created_at   TEXT NOT NULL CHECK (created_at IS datetime(julianday(created_at))),
     FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (category_id) REFERENCES categories(id)
 );
@@ -40,7 +40,7 @@ CREATE TABLE approvals (
     status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'denied')),
     reviewer_id INTEGER NULL,
     comment TEXT NULL,
-    review_date TEXT NULL CHECK (review_date IS date(review_date)),
+    review_date TEXT NULL CHECK (review_date IS date(julianday(review_date))),
     FOREIGN KEY (expense_id) REFERENCES expenses(id),
     FOREIGN KEY (reviewer_id) REFERENCES users(id)
 );

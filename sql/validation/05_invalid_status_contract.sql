@@ -11,4 +11,4 @@ WHERE a.status NOT IN ('pending', 'approved', 'denied')
    OR (a.review_date IS NOT NULL
        AND (length(a.review_date) <> 10
             OR date(a.review_date) IS NULL
-            OR date(a.review_date) <> a.review_date));
+            OR date(julianday(a.review_date)) <> a.review_date));
