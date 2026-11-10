@@ -226,7 +226,7 @@ Maven prints where it saved the report under `target/`. Copy it to `docs/evidenc
 In the Manager App, choose `3` Reports, pick a report, then answer `y` to export it. The file is saved as:
 
 ```
-reports/<type>_<YYYYMMDD_HHMMSS>.csv
+manager-app-java/reports/<type>_<YYYYMMDD_HHMMSS>.csv
 ```
 
 where `<type>` is `employee`, `category`, or `employee_range`. Each file has a header row followed by the rows shown on screen.
