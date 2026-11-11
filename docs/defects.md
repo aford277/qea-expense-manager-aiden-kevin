@@ -21,7 +21,7 @@
 | **Severity** | Low: the app still refuses to start and exits with code 1; only the message is wrong. Workaround: the log and README point to the cause. |
 | **Priority** | Medium: it breaks part of a Must requirement, and the fix is small. |
 | **Environment** | OS: Windows 10 · Java: 21.0.1 · Maven: 3.10.0 · Commit: 38e6473 |
-| **Status** | [New] |
+| **Status** | Fixed |
 | **Reporter** | Aiden |
 | **Assignee** | Aiden |
 
@@ -38,7 +38,7 @@
 
 **Evidence:** KAN_24_Error.png in docs\evidence
 
-**Retest result:** [not retested yet]
+**Retest result:** KAN_24_Error.png in docs\evidence
 
 ---
 
@@ -68,4 +68,4 @@
 
 **Evidence:** KAN_24_Error.png in docs\evidence
 
-**Retest result:** System.out.println("Enter a, d, or c.");
+**Retest result:** KAN_24_Error.png in docs\evidence

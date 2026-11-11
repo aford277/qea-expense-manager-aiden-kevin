@@ -25,6 +25,10 @@ public class Main {
             Menu menu = new Menu(scanner, System.console(), authService, approvalService, reportService);
             exitCode = menu.run();
  
+        } catch (IllegalStateException e) {
+            AppLogger.error(e.getMessage());
+            System.out.println(e.getMessage() + " See README.");
+            exitCode = 1;
         } catch (Exception e) {
             AppLogger.error("Unexpected error", e);
             System.out.println("Unexpected error. See log.");
