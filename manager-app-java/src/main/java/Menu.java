@@ -5,6 +5,11 @@ import exception.ValidationException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Scanner;
+
+import de.vandermeer.asciitable.AT_Row;
+import de.vandermeer.asciitable.AsciiTable;
+import de.vandermeer.asciitable.CWC_LongestLine;
+import de.vandermeer.skb.interfaces.transformers.textformat.TextAlignment;
 import model.Expense;
 import model.User;
 import model.ReportRow;
@@ -114,12 +119,26 @@ public class Menu {
             System.out.println("No pending expenses.");
             return;
         }
-        String format = "%-5s %-20s %-10s %-16s %10s  %s%n";
-        System.out.printf(format, "ID", "Employee", "Date", "Category", "Amount", "Description");
+
+        AsciiTable table = newTable();
+        addHeader(table, "ID", "Employee", "Date", "Category", "Amount", "Description");
         for (Expense e : pending) {
-            System.out.printf(format,
-                    e.id(), e.employeeName(), e.expenseDate(), e.category(), e.amount(), e.description());
+            AT_Row row = table.addRow(
+                text(e.id()), text(e.employeeName()), text(e.expenseDate()),
+                text(e.category()), text(e.amount()), text(e.description()));
+            alignRight(row, 0, 4);
+            table.addRule();
         }
+
+        CWC_LongestLine widths = new CWC_LongestLine()
+                .add(2, 0)    // ID
+                .add(8, 0)    // Employee
+                .add(10, 0)   // Date
+                .add(8, 0)    // Category
+                .add(6, 0)    // Amount
+                .add(11, 40); // Description (max 40, then wraps)
+        table.getRenderer().setCWC(widths);
+        System.out.println(table.render());
     }
 
     private void reviewExpense() {
@@ -214,11 +233,47 @@ public class Menu {
             System.out.println("No data for the selected criteria.");   // exact text from FR-M3
             return;
         }
-        String format = "%-24s %6s %14s %14s%n";
-        System.out.printf(format, nameHeader, "Count", "Total", "Approved");
+
+        AsciiTable table = newTable();
+        addHeader(table, nameHeader, "Count", "Total", "Approved");
         for (ReportRow r : rows) {
-            System.out.printf(format, r.name(), r.count(), r.totalAmount(), r.totalApproved());
+            AT_Row row = table.addRow(
+                    text(r.name()), text(r.count()), text(r.totalAmount()), text(r.totalApproved()));
+            alignRight(row, 1, 2, 3);
+            table.addRule();
         }
+        table.getRenderer().setCWC(new CWC_LongestLine());   // each column as wide as its longest value
+        System.out.println(table.render());
+    }
+ 
+    /** A new table with one space of padding inside each cell. */
+    private AsciiTable newTable() {
+        AsciiTable table = new AsciiTable();
+        table.setPaddingLeftRight(1);
+        return table;
+    }
+ 
+    /** Adds the top border, the header row, and the line under it. */
+    private void addHeader(AsciiTable table, String... headers) {
+        table.addRule();
+        AT_Row header = table.addRow((Object[]) headers);
+        header.setTextAlignment(TextAlignment.CENTER);
+        table.addRule();
+    }
+ 
+    /** Right-aligns the given columns (0-based) in one row. */
+    private void alignRight(AT_Row row, int... columns) {
+        for (int c : columns) {
+            row.getCells().get(c).getContext().setTextAlignment(TextAlignment.RIGHT);
+        }
+    }
+ 
+    /**
+     * Turns any value into cell text. Important: asciitable treats a null cell as
+     * "merge with the next column", so a null value would break the table layout.
+     */
+    private String text(Object value) {
+        return value == null ? "" : String.valueOf(value);
     }
 
     /** Keeps asking the same question until something other than blank/spaces is typed. */
