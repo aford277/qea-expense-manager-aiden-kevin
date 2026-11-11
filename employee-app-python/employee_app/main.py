@@ -1,6 +1,5 @@
 """Entry point for the Employee App.
 
-Run from route
 Run from employee-app-python/:   python -m employee_app.main
  
 Job of this file:
@@ -30,11 +29,11 @@ def main():
             menu.run(conn)
     except RuntimeError as e:
         # db_path() raises this when EM_DB_PATH is not set
-        logger.error("EM_DM_PATH is not set! See README.")
-        print("EM_DM_PATH is not set! See README.")
+        logger.error("EM_DB_PATH is not set! See README.")
+        print("EM_DB_PATH is not set! See README.")
         sys.exit(1)
     except (DatabaseError, sqlite3.Error):
-        logger.exception("There was a problem starting accessing the database!")
+        logger.exception("There was a problem accessing the database!")
         print("Could not access the database.")
         sys.exit(1)
     except Exception:

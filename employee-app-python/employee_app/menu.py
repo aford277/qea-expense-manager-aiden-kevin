@@ -134,7 +134,7 @@ def _print_categories(categories):
     """Show the numbered category list."""
     print("Categories:")
     for c in categories:
-        print(f"  {c['id']}. {c['name']}")
+        print(f"  {c['id']}) {c['name']}")
 
 def submit_expense(conn, user):
     """Menu option 1 – FR-E1."""
@@ -162,7 +162,10 @@ def submit_expense(conn, user):
 def view_expenses(conn, user):
     """Menu option 2 – FR-E2."""
     while True:  # VR-09: re-prompt until a valid choice
-        print("\nShow: 1) All  2) Pending  3) Approved  4) Denied")
+        print("1) All")
+        print("2) Pending")
+        print("3) Approved")
+        print("4) Denied")
         choice = input("Choice: ").strip()
         if choice in STATUS_FILTERS:
             break
@@ -196,7 +199,7 @@ def edit_expense(conn, user):
         print(exc)  # not found, someone else's, or "Expense is no longer pending."
         return
 
-    print(f"\nEditing expense #{expense_id}. Press Enter to keep the current value.")
+    print(f"\nEditing expense {expense_id}. Press Enter to keep the current value.")
     amount = _ask(f"Amount [{current['amount']:.2f}]: ", validate_amount,
                   keep=current["amount"])
     _print_categories(categories)
@@ -214,7 +217,7 @@ def edit_expense(conn, user):
     except ExpenseManagerError as exc:
         print(exc)  # e.g. a manager decided it while we were editing (XW-03)
         return
-    print(f"Expense #{expense_id} updated.")
+    print(f"Expense {expense_id} updated.")
 
 def delete_expense(conn, user):
     """Menu option 4 – FR-E4. Only 'y' or 'Y' confirms."""
@@ -241,7 +244,7 @@ def delete_expense(conn, user):
     except ExpenseManagerError as exc:
         print(exc)  # manager decided it before we confirmed (XW-04)
         return
-    print(f"Expense #{expense_id} deleted.")
+    print(f"Expense {expense_id} deleted.")
 
 def view_review_history(conn, user):
     """Menu option 5 – FR-E5."""
@@ -273,12 +276,12 @@ def main_menu(conn, user):
     """
     while True:
         print("\nPlease choose a service to perform or 0 to exit.")
-        print("1. Submit expense")
-        print("2. View expense reports")
-        print("3. Edit pending expense")
-        print("4. Delete pending expense")
-        print("5. Review expense history")
-        print("0. Exit")
+        print("1) Submit expense")
+        print("2) View expense reports")
+        print("3) Edit pending expense")
+        print("4) Delete pending expense")
+        print("5) Review expense history")
+        print("0) Exit")
         try:
             choice = validate_menu_choice(input("Choose: "), max_choice=5)
         except ValidationError as exc:
@@ -298,7 +301,7 @@ def main_menu(conn, user):
         elif choice == 5:
             view_review_history(conn, user)
         else:
-            print ("Choose a number from the menu.")
+            print("Choose a number from the menu.")
 
 
 def run(conn):
