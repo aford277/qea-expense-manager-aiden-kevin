@@ -163,7 +163,7 @@ public class Menu {
             } else if (decision.equals("a") || decision.equals("d")) {
                 break;
             }
-            System.out.println("Enter a or d.");
+            System.out.println("Enter a, d, or c.");
         }
  
         // Ask for the comment until it passes (if comment is)
