@@ -22,7 +22,7 @@ public class Main {
             ApprovalService approvalService = new ApprovalService(new ApprovalDao(conn), Clock.systemDefaultZone());
             ReportService reportService = new ReportService(new ReportDao(conn), Clock.systemDefaultZone());
 
-            Menu menu = new Menu(scanner, authService, approvalService, reportService);
+            Menu menu = new Menu(scanner, System.console(), authService, approvalService, reportService);
             exitCode = menu.run();
  
         } catch (Exception e) {
