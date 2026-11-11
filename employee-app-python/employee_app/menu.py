@@ -285,6 +285,7 @@ def main_menu(conn, user):
             print(exc)
             continue
         if choice == 0:
+            print("Goodbye.")
             return
         elif choice == 1:
             submit_expense(conn, user)
@@ -303,5 +304,5 @@ def main_menu(conn, user):
 def run(conn):
     """Log the user in, then show the main menu."""
     user = login_prompt(conn)
-    print(f"Welcome, {user.full_name}")
+    print(f"\nWelcome, {user.full_name}")
     main_menu(conn, user)

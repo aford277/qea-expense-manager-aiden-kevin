@@ -5,7 +5,7 @@ import exception.ValidationException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Scanner;
-
+import java.io.Console;
 import de.vandermeer.asciitable.AT_Row;
 import de.vandermeer.asciitable.AsciiTable;
 import de.vandermeer.asciitable.CWC_LongestLine;
@@ -23,13 +23,20 @@ import log.AppLogger;
 public class Menu {
 
     private final Scanner in;
+    private final Console console;
     private final AuthService authService;
     private final ApprovalService approvalService;
     private final ReportService reportService;
     private User manager;
 
+    /** Used by tests: no console, so the password is read from the Scanner like everything else. */
     public Menu(Scanner in, AuthService authService, ApprovalService approvalService, ReportService reportService) {
+        this(in, null, authService, approvalService, reportService);
+    }
+
+    public Menu(Scanner in, Console console, AuthService authService, ApprovalService approvalService, ReportService reportService) {
         this.in = in;
+        this.console = console;
         this.authService = authService;
         this.approvalService = approvalService;
         this.reportService = reportService;
@@ -50,8 +57,8 @@ public class Menu {
     private User login() {
         int failed = 0;
         while (true) {
-            String username = askNonBlank("Username: ");
-            String password = askNonBlank("Password: ");
+            String username = askNonBlank("Username: ", false);
+            String password = askNonBlank("Password: ", true);
             
             try {
                 User user = authService.login(username, password);
@@ -277,14 +284,24 @@ public class Menu {
     }
 
     /** Keeps asking the same question until something other than blank/spaces is typed. */
-    private String askNonBlank(String prompt) {
+    private String askNonBlank(String prompt, boolean hidden) {
         while (true) {
+            String raw = hidden ? askHidden(prompt) : ask(prompt);
             try {
-            return InputValidator.validateLoginInput(ask(prompt));
+            return InputValidator.validateLoginInput(raw);
         } catch (ValidationException e) {
             System.out.println(e.getMessage());
         }
         }
+    }
+
+    /** Reads a line without echoing it. Falls back to normal input when there is no console (tests, some IDEs). */
+    private String askHidden(String prompt) {
+        if (console == null) {
+            return ask(prompt);
+        }
+        char[] typed = console.readPassword(prompt);
+        return typed == null ? "" : new String(typed);
     }
 
     private String ask(String prompt) {
