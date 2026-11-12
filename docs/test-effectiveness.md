@@ -1,15 +1,5 @@
 # Test Effectiveness Check
 
-Spec section: 9.11
-
-One small bug was put on purpose into each app on a scratch branch. Both automated suites were then run to see whether a test caught it. The bugs were reverted with Git afterwards and never merged.
-
-- **Date:** <!-- YYYY-MM-DD -->
-- **Done by:** <!-- names -->
-- **Scratch branch:** <!-- e.g. scratch/test-effectiveness -->
-
----
-
 ## Bug 1 — Manager App (Java)
 
 | Item | Details |
