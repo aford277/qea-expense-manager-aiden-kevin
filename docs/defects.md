@@ -69,3 +69,35 @@
 **Evidence:** KAN_24_Error.png in docs\evidence
 
 **Retest result:** KAN_24_Error.png in docs\evidence
+
+---
+
+## KAN-30: Approve and deny comments replace characters like é or emojis without mentioning it.
+
+| Field | Value |
+|-------|-------|
+| **Requirement** | FR-M2 (Approve or deny a pending expense) |
+| **Test case** | Found during exploratory testing |
+| **Severity** | Medium: The app silently changes what the user typed. |
+| **Priority** | Medium: It is something that is common, especially in other languages or names. |
+| **Environment** | OS: Windows 10 · Java: 21.0.1 · Maven: 3.10.0 · Commit: 38e6473 |
+| **Status** | New |
+| **Reporter** | Aiden |
+| **Assignee** |  |
+
+**Steps to reproduce**
+1. Log in as a manager
+2. Approve or deny an expense
+3. Write é  as a part of the comment
+4. Log in as the employee the expense belongs to
+5. Review the employees expenses
+
+**Expected:** The comment to be saved exactly as it was written.
+
+**Actual:** Actual: é  is replaced by �.
+
+**Cause:** Terminal converts characters to bytes, not as UTF-8.
+
+**Evidence:** KAN_30_Error1.png and KAN_30_Error2.png in docs\evidence
+
+**Retest result:** 
