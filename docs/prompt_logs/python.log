@@ -141,3 +141,12 @@ def validate_menu_choice(choice_input, max_choice=5) -> int:
         raise ValidationError(f"Menu choice must be between 0 and {max_choice}.")
 
     return val
+
+| Date | Prompt | What the AI gave | What was used |
+|---|---|---|---|
+| Oct 29 | "What build order should I go in to complete this project? Our trainer has said we should focus on building before any testing." | A build order for both apps with tests left out, plus a warning that the spec says to test while building. | Used. The apps were built first and testing started in November. |
+| Oct 29 | "Where should i set up my logger?" | A `logging_config.py` with one `setup_logging()` called from `main.py`, and a file-by-file list of what each module should log. | Used. `employee_app/logging_config.py`, same log format. |
+| Oct 29 | "Write a skeleton for the following services in this app:" | A `services.py` skeleton: a `User` dataclass and stubbed functions with TODO steps and spec references. | Used as the starting structure. Some functions were renamed later. |
+| Nov 9 | "Leaving the username blank on python will not immediately reprompt it… meanwhile, java will reprompt for it right away. How should I fix this?" | Reuse the `_ask` helper for login, with a `read=input` parameter so the password still goes through `getpass`. | Used. A two-line change to `_ask`. |
+| Nov 9 | "Creat a starting conftest.py file I can use that has some basic fixtures I might need" | `tests/conftest.py`: a temporary database built from the real schema and seed for each test, connection and user fixtures, a fixed `seed_today`. | Used with some more fixtures added later. |
+| Nov 11 | [traceback: `NameError: name 'textwrap' is not defined`] "I got this error. What seems to be going on" | Bug found: `import textwrap` was missing from `menu.py`. | Import added. |
