@@ -1,89 +1,75 @@
 # Exploratory Testing Notes
 
-Section 9.7: 2 sessions of about 30 minutes each, one per app.
-Defects found here are logged in Jira (project KAN). Good ideas become designed test cases.
-
-| Session | App | Tester | Date | Length |
-|---------|-----|--------|------|--------|
-| ET-01 | Employee App (Python) | Kevin | 2026-11-12 | 20 min |
-| ET-02 | Manager App (Java) | Aiden | 2026-11-__ | __ min |
-
----
-
-## ET-01: Employee App (Python)
+## Session 1: Employee App
 
 **Charter:** Explore login, submit, edit and delete in the Employee App with unusual input and interruptions to find validation and error-handling gaps.
-
-**Setup**
-- Fresh database built from `sql/schema.sql` and `sql/seed.sql`, with `EM_DB_PATH` set.
-- Run from `employee-app-python/`: `python -m employee_app.main`
-- Users: `emp_jordan` / `jordan123` (employee), `mgr_asha` / `asha123` (manager).
-- Jordan's expenses: pending 1, 13, 17, 25; approved 5, 9, 21. Expense 4 is Omar's (pending).
+**Tester:** Kevin · **Date:** 2026-11-11 · **Time:** 3:00-3:20 (20 min)
 
 ### What I tried
+| What I tried | Expected | What happened | Bug? |
+|---|---|---|---|
+| Login with spaces around username: `  emp_jordan  ` | Logs in, or `Invalid username or password.` | | |
+| Unknown username `emp_nobody` | `Invalid username or password.` | | |
+| Right username, wrong password | Same message as unknown username | | |
+| Username in another case: `EMP_JORDAN` | `Invalid username or password.` | | |
+| Log in as `mgr_asha` | `This account does not have access to this app.`, then exits | | |
+| Spaces only, then a valid login | Re-prompts without counting a failure | | |
+| Start with `EM_DB_PATH` unset | Clear message naming `EM_DB_PATH`, exit code 1 | | |
+| `EM_DB_PATH` set to a folder that doesn't exist | Clear message, exit code 1, no traceback | | |
+| Ctrl+C at the Amount prompt | Short message, no traceback | | |
+| Main menu: `6`, `-1`, `1.0`, ` 1 `, `abc`, empty | Re-prompts for invalid; ` 1 ` accepted | | |
+| Read the main menu labels | Labels match §6.2 | | |
+| Amount: `1,000`, `+5`, `.5`, `5.`, `007`, `1e3`, `10000.00`, `10000.001` | Only `007` and `10000.00` accepted | | |
+| Description: 201 chars with 1 leading space | Accepted (200 after trim) | | |
+| Description with emoji and apostrophe: `Client's lunch 🍕` | Saved and shown exactly | | |
+| Category `06`, ` 3 `, `٣` | `06` and ` 3 ` accepted; `٣` rejected | | |
+| Date `2026-11-12`, `2024-02-29`, `2026-2-5`, `2026/11/01` | Today accepted; others rejected | | |
+| Edit expense 4 (Omar's) | Clear refusal, nothing changes | | |
+| Edit expense 5 (approved) | `Expense is no longer pending.` | | |
+| Edit expense 999 | Clear "not found" message | | |
+| Edit with Enter on every field | Nothing changes | | |
+| Delete answers `yes`, `Y `, ` y`, `n` | Only `y`/`Y` deletes | | |
+| View filter `5`, `abc`, empty | Re-prompts | | |
+| History: expenses 5 and 9 | Both show `(no comment)` | | |
+| Open `logs/employee_app.log` after the session | Logins logged, no passwords | | |
 
-| # | Area | What I tried | Expected (spec) | What happened | Bug? |
-|---|------|--------------|-----------------|---------------|------|
-| 1 | Login (FR-A1) | Username with spaces around it: `  emp_jordan  ` | Logs in, or `Invalid username or password.` | | |
-| 2 | Login (FR-A1) | Unknown username `emp_nobody` | `Invalid username or password.` | | |
-| 3 | Login (FR-A1) | Right username, wrong password | Same message as #2 | | |
-| 4 | Login (FR-A1) | Username in a different case: `EMP_JORDAN` | `Invalid username or password.` | | |
-| 5 | Login (FR-A2) | Log in as `mgr_asha` | `This account does not have access to this app.`, then the app exits | | |
-| 6 | Login (FR-A1) | Spaces only, then a valid login (does a blank count as a failure?) | Re-prompts without counting a failure | | |
-| 7 | Startup (FR-S4) | Unset `EM_DB_PATH` (`unset EM_DB_PATH`) and start the app | Clear message naming `EM_DB_PATH`, exit code 1 (`echo $?`) | | |
-| 8 | Startup (FR-S4) | Set `EM_DB_PATH` to a folder that doesn't exist | Clear message, exit code 1, no traceback | | |
-| 9 | Any prompt (FR-S4) | Press Ctrl+C at the Amount prompt | Short message, no traceback | | |
-| 10 | Main menu (VR-09) | `6`, `-1`, `1.0`, ` 1 `, `abc`, empty | Re-prompts for invalid input; ` 1 ` is accepted | | |
-| 11 | Main menu (6.2) | Read the menu labels | `Submit expense`, `View my expenses`, `Edit pending expense`, `Delete pending expense`, `Review history`, `Exit` | | |
-| 12 | Submit (VR-01) | `1,000`, `+5`, `.5`, `5.`, `007`, `1e3`, `10000.00`, `10000.001` | Only `007` (= 7) and `10000.00` are accepted | | |
-| 13 | Submit (VR-02) | 201 characters with 1 leading space, so 200 after trimming | Accepted (200 after trim) | | |
-| 14 | Submit (VR-02) | Emoji and an apostrophe: `Client's lunch 🍕` | Saved and shown exactly | | |
-| 15 | Submit (VR-03) | Category `06`, ` 3 `, `٣` (Arabic digit) | `06` and ` 3 ` are accepted; `٣` is rejected | | |
-| 16 | Submit (VR-04) | `2026-11-12` (today), `2024-02-29`, `2026-2-5`, `2026/11/01` | Today is accepted; the others are rejected with the rule | | |
-| 17 | Edit (FR-E3) | Edit expense 4 (Omar's) | Clear refusal, nothing changes | | |
-| 18 | Edit (FR-E3) | Edit expense 5 (approved) | `Expense is no longer pending.` | | |
-| 19 | Edit (FR-E3) | Edit expense 999 | Clear "not found" message | | |
-| 20 | Edit (FR-E3) | Press Enter on every field | Nothing changes; check with View | | |
-| 21 | Delete (FR-E4) | Answer `yes`, `Y `, ` y`, `n` | Only `y`/`Y` deletes. Note what happens with spaces around `Y` | | |
-| 22 | View (FR-E2) | Filter `5`, `abc`, empty | Re-prompts | | |
-| 23 | History (FR-E5) | View history, check expenses 5 and 9 | Both show `(no comment)` | | |
-| 24 | Logging (FR-S3) | After the session, open `logs/employee_app.log` | Logins logged, no passwords anywhere | | |
+### Findings
+- **Defects:** [KAN key]: [summary] (FR-xx)
+- **New test case ideas:** [idea] → [TC ID or "not added"]
 
-### What I found
+## Session 2: Manager App
 
-| # | Finding | Requirement | Severity | Jira |
-|---|---------|-------------|----------|------|
-| | | | | |
-
-### Ideas for new test cases
-
-| Idea | Requirement | Turned into |
-|------|-------------|-------------|
-| | | |
-
-### Notes / questions
--
-
----
-
-## ET-02: Manager App (Java)
-
-**Charter:** _(Aiden: one line)_
+**Charter:** Explore reviewing expenses with unusual IDs and comments to find validation gaps.
+**Tester:** Aiden · **Date:** 2026-11-11 · **Time:** 4:00–4:30
 
 ### What I tried
+| What I tried | What happened | Bug? |
+|---|---|---|
+| 0 as expense id | Expense ID must be a positive whole number. | No |
+| -1 as expense id | Expense ID must be a positive whole number. | No |
+| 1.5 as expense id | Expense ID must be a positive whole number. | No |
+| abc as expense id | Expense ID must be a positive whole number. | No |
+| "  7  " as expense id  | Expense is no longer pending. (valid input) | No |
+| 007 as expense id | Expense is no longer pending. (valid input) | No |
+| 999999999999999999999999999999999999 as expense id | Expense ID must be a positive whole number. | No? (it is a positive whole number but unrealistic and too high of an int) |
+| 26 as expense id | Expense 26 not found. | No |
+| A to approve expense | Expense was approved | No |
+| D to deny expense | Expense was denied | No |
+| C to cancel decision | Decision was cancelled | No |
+| approve to approve expense | Valid options reprinted | No |
+| Empty input to approve expense | Valid options reprinted | No |
+| Four character deny comment | Comment too short message and reprompted | No |
+| Four characters and a space deny comment | Comment too short message and reprompted | No |
+| 200 characters deny comment | Expense denied | No |
+| 201 character deny comment | Comment too long message and reprompted | No |
+| 10 spaces deny comment | Comment too short message and reprompted | No? (Could be better error message) |
+| Spaces surrounding valid comment | Comment saved without extra spaces | No |
+| Comment containing é | Comment saved with � replacing the é | Yes (comment not saved properly) |
+| Comment containing 😀 | Comment saved with ?? replacing the 😀 | Yes (comment not saved properly) |
+| Comment with special characters (, and ?) | Comment saved properly | No |
 
-| # | Area | What I tried | Expected (spec) | What happened | Bug? |
-|---|------|--------------|-----------------|---------------|------|
-| 1 | | | | | |
 
-### What I found
 
-| # | Finding | Requirement | Severity | Jira |
-|---|---------|-------------|----------|------|
-| | | | | |
-
-### Ideas for new test cases
-
-| Idea | Requirement | Turned into |
-|------|-------------|-------------|
-| | | |
+### Findings
+- **Defects:** KAN-30: Comments that are written with special characters such as é or emojis are replaced in the database but the app does not mention it to the user or have them reenter a comment without it. (FR-M2)
+- **New test case ideas:**  Testing for emojis in comments, testing with just empty spaces (in comments or other places)
