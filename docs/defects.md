@@ -7,8 +7,10 @@
 
 | ID | Summary | Requirement | Severity | Priority | Status |
 |----|---------|-------------|----------|----------|--------|
-| KAN-24 | Missing `EM_DB_PATH` shows "Unexpected error. See log." instead of a clear message | FR-S4 | Low | Medium | [New] |
+| KAN-24 | Missing `EM_DB_PATH` shows "Unexpected error. See log." instead of a clear message | FR-S4 | Low | Medium | Fixed |
 | KAN-29 | Review re-prompt says "Enter a or d." and leaves out the `c` (cancel) option | FR-M2 | Low | Low | Fixed |
+| KAN-30 | Approve and deny comments replace characters like é or emojis without mentioning it. | Low | Low | [New] |
+| KAN-32 | Employee App shows a full traceback when the user presses Ctrl+C at a prompt | FR-S4 | Low | Medium | [New] |
 
 ---
 
@@ -101,3 +103,34 @@
 **Evidence:** KAN_30_Error1.png and KAN_30_Error2.png in docs\evidence
 
 **Retest result:** 
+
+---
+
+## KAN-32: Employee App shows a full traceback when the user presses Ctrl+C at a prompt
+
+| Field | Value |
+|-------|-------|
+| **Requirement** | FR-S4 (Friendly error handling) |
+| **Test case** | Found during exploratory testing |
+| **Severity** | Low: the user chose to quit; nothing is saved halfway and no data is lost, but the traceback breaks FR-S4 and exposes local file paths. |
+| **Priority** | Medium: it clearly breaks the spec, and the fix is small (one extra `except` block). |
+| **Environment** | OS: Windows 11 · Python: 3.15.2 · Shell: PowerShell · Commit: 6a929d5 |
+| **Status** | New |
+| **Reporter** | Kevin |
+| **Assignee** |  |
+
+**Steps to reproduce**
+1. Set `EM_DB_PATH` to the database and start the Employee App: `python -m employee_app.main`
+2. Log in as `emp_jordan` / `jordan123`
+3. Choose `1` (Submit expense)
+4. At the `Amount:` prompt, press Ctrl+C
+
+**Expected:** A short message (for example `Exiting.`) and the app closes, with no traceback.
+
+**Actual:** A full Python traceback ending in `KeyboardInterrupt` is printed, showing the local file paths (`main.py`, `menu.py`), and then the app closes.
+
+**Cause:** `KeyboardInterrupt` is not a subclass of `Exception`, so the `except Exception:` block in `main.py` does not catch it.
+
+**Evidence:** KAN_32_Error.png in docs\evidence
+
+**Retest result:**
