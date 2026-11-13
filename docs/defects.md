@@ -68,9 +68,9 @@
 
 **Cause:** In `Menu.reviewExpense()`, the error message for an invalid choice is `"Enter a or d."`.
 
-**Evidence:** KAN_24_Error.png in docs\evidence
+**Evidence:** KAN_29_Error.png in docs\evidence
 
-**Retest result:** KAN_24_Error.png in docs\evidence
+**Retest result:** KAN_29_Error.png in docs\evidence
 
 ---
 
