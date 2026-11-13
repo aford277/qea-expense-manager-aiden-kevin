@@ -9,7 +9,7 @@
 |----|---------|-------------|----------|----------|--------|
 | KAN-24 | Missing `EM_DB_PATH` shows "Unexpected error. See log." instead of a clear message | FR-S4 | Low | Medium | Fixed |
 | KAN-29 | Review re-prompt says "Enter a or d." and leaves out the `c` (cancel) option | FR-M2 | Low | Low | Fixed |
-| KAN-30 | Approve and deny comments replace characters like é or emojis without mentioning it. | Low | Low | [New] |
+| KAN-30 | Approve and deny comments replace characters like é or emojis without mentioning it. | FR-M2 | Low | Low | [New] |
 | KAN-32 | Employee App shows a full traceback when the user presses Ctrl+C at a prompt | FR-S4 | Low | Medium | [New] |
 
 ---
