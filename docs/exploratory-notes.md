@@ -3,39 +3,43 @@
 ## Session 1: Employee App
 
 **Charter:** Explore login, submit, edit and delete in the Employee App with unusual input and interruptions to find validation and error-handling gaps.
-**Tester:** Kevin · **Date:** 2026-11-11 · **Time:** 3:00-3:20 (20 min)
+**Tester:** Kevin · **Date:** 2026-11-11 · **Time:** 3:00–3:20 (20 min)
 
 ### What I tried
-| What I tried | Expected | What happened | Bug? |
-|---|---|---|---|
-| Login with spaces around username: `  emp_jordan  ` | Logs in, or `Invalid username or password.` | | |
-| Unknown username `emp_nobody` | `Invalid username or password.` | | |
-| Right username, wrong password | Same message as unknown username | | |
-| Username in another case: `EMP_JORDAN` | `Invalid username or password.` | | |
-| Log in as `mgr_asha` | `This account does not have access to this app.`, then exits | | |
-| Spaces only, then a valid login | Re-prompts without counting a failure | | |
-| Start with `EM_DB_PATH` unset | Clear message naming `EM_DB_PATH`, exit code 1 | | |
-| `EM_DB_PATH` set to a folder that doesn't exist | Clear message, exit code 1, no traceback | | |
-| Ctrl+C at the Amount prompt | Short message, no traceback | | |
-| Main menu: `6`, `-1`, `1.0`, ` 1 `, `abc`, empty | Re-prompts for invalid; ` 1 ` accepted | | |
-| Read the main menu labels | Labels match §6.2 | | |
-| Amount: `1,000`, `+5`, `.5`, `5.`, `007`, `1e3`, `10000.00`, `10000.001` | Only `007` and `10000.00` accepted | | |
-| Description: 201 chars with 1 leading space | Accepted (200 after trim) | | |
-| Description with emoji and apostrophe: `Client's lunch 🍕` | Saved and shown exactly | | |
-| Category `06`, ` 3 `, `٣` | `06` and ` 3 ` accepted; `٣` rejected | | |
-| Date `2026-11-12`, `2024-02-29`, `2026-2-5`, `2026/11/01` | Today accepted; others rejected | | |
-| Edit expense 4 (Omar's) | Clear refusal, nothing changes | | |
-| Edit expense 5 (approved) | `Expense is no longer pending.` | | |
-| Edit expense 999 | Clear "not found" message | | |
-| Edit with Enter on every field | Nothing changes | | |
-| Delete answers `yes`, `Y `, ` y`, `n` | Only `y`/`Y` deletes | | |
-| View filter `5`, `abc`, empty | Re-prompts | | |
-| History: expenses 5 and 9 | Both show `(no comment)` | | |
-| Open `logs/employee_app.log` after the session | Logins logged, no passwords | | |
+
+| What I tried | What happened | Bug? |
+|---|---|---|
+| Login with spaces around username: `emp_jordan ` | Logs in | No |
+| Unknown username `emp_nobody` | `Username not found!` | No |
+| Right username, wrong password | `Incorrect Password` | No |
+| Username in another case: `EMP_JORDAN` | `Username not found!` | No |
+| Log in as `mgr_asha` | `You are using the wrong app. This app is for employees only.`, then exits | No |
+| Spaces only, then a valid login | Re-prompts without counting a failure: `Please enter a username and password` | No |
+| Start with `EM_DB_PATH` unset | Clear message: `EM_DB_PATH is not set! See README.`, exit code 1 | No |
+| `EM_DB_PATH` set to a folder that doesn't exist | Clear message: `Could not access the database.`, exit code 1, no traceback | No |
+| Ctrl+C at the Amount prompt | Expected: a short message, no traceback. Actual: full Python traceback ending in `KeyboardInterrupt`, showing file paths. The app closes. | **Yes** |
+| Main menu: `6`, `-1`, `1.0`, `1`, `abc`, empty | Invalid input re-prompts with `Menu choice must be a whole number` or `Menu choice must be between 0 and 5`; `1` accepted | No |
+| Read the main menu labels | Menu labels match the project's description | No |
+| Amount: `1,000`, `+5`, `.5`, `5.`, `007`, `1e3`, `10000.00`, `10000.001` | Only `007` and `10000.00` accepted | No |
+| Description: 201 chars with 1 leading space | Accepted (200 after trim) | No |
+| Description with emoji and apostrophe: `Client's lunch 🍕` | Saved and shows `Pizza lunch 🍕` in the Employee App | No |
+| Category `06`, `3`, `٣` (Arabic digit) | `06` and `3` accepted; `٣` rejected | No |
+| Date `2026-11-12`, `2024-02-29`, `2026-2-5`, `2026/11/01` | `2026-11-12` accepted; others rejected | No |
+| Edit expense 4 (Omar's) | Clear refusal: `You can only change your own expenses`, nothing changes | No |
+| Edit expense 5 (approved) | Clear message: `Expense is no longer pending.` | No |
+| Edit expense 999 | Clear not-found message: `Expense #999 not found` | No |
+| Edit expense 13, Enter on every field | Nothing changes | No |
+| Delete answers `yes`, `Y `, `y`, `n` | Only `y`/`Y` deletes | No |
+| View filter `5`, `abc`, empty | Each one re-prompts with `Please enter a number from the menu.` and shows the filter menu again | No |
+| History: expenses 5 and 9 | Both show `(no comment)` | No |
 
 ### Findings
-- **Defects:** [KAN key]: [summary] (FR-xx)
-- **New test case ideas:** [idea] → [TC ID or "not added"]
+
+- **Defects:**
+  - KAN-32: Employee App shows a full traceback when the user presses Ctrl+C at a prompt (FR-S4)
+- **New test case ideas:**
+  - Ctrl+C at any input prompt exits cleanly → TS-05
+  - Edit/Delete ID prompt and the View filter have no way to go back to the menu → not added (not in the spec)
 
 ## Session 2: Manager App
 
